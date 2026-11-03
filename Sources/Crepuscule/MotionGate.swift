@@ -3,6 +3,7 @@
 #if os(iOS)
 import CoreMotion
 import Foundation
+import UIKit
 
 public final class MotionGate: @unchecked Sendable {
     private let manager = CMMotionManager()
@@ -10,6 +11,7 @@ public final class MotionGate: @unchecked Sendable {
     private let lock = NSLock()
     private var detector = StillnessDetector()
     private var history = MotionHistory()
+    private var heldOrientation: UIDeviceOrientation?
 
     public init() {}
 
@@ -19,7 +21,10 @@ public final class MotionGate: @unchecked Sendable {
         manager.startDeviceMotionUpdates(to: opQueue) { [weak self] motion, _ in
             guard let self, let r = motion?.rotationRate else { return }
             let t = motion?.timestamp ?? ProcessInfo.processInfo.systemUptime
-            lock.lock(); detector.add(rotationRate: r.x, r.y, r.z); history.add(time: t, rate: (r.x * r.x + r.y * r.y + r.z * r.z).squareRoot()); lock.unlock()
+            let held = motion.flatMap { Self.orientation(gravity: $0.gravity) }
+            lock.lock(); detector.add(rotationRate: r.x, r.y, r.z); history.add(time: t, rate: (r.x * r.x + r.y * r.y + r.z * r.z).squareRoot())
+            if let held { heldOrientation = held }
+            lock.unlock()
         }
     }
 
@@ -29,6 +34,16 @@ public final class MotionGate: @unchecked Sendable {
     }
 
     public var rotationRate: Double? { lock.withLock { detector.rmsRate } }
+
+    // not UIDevice orientation, the lock screen extension doesnt get it
+    public var orientation: UIDeviceOrientation? { lock.withLock { heldOrientation } }
+
+    static func orientation(gravity g: CMAcceleration) -> UIDeviceOrientation? {
+        let ax = abs(g.x), ay = abs(g.y)
+        guard max(ax, ay) > 0.55 else { return nil }
+        if ax > ay { return g.x < 0 ? .landscapeLeft : .landscapeRight }
+        return g.y < 0 ? .portrait : .portraitUpsideDown
+    }
 
     public func blurPixels(from start: Double, to end: Double, horizontalFOVDegrees fov: Double, imageWidth: Int) -> Float? {
         let angle = lock.withLock { history.angle(from: start, to: end) }

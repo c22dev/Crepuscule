@@ -28,7 +28,6 @@ public struct CaptureResult: Sendable {
     public let frames: [(url: URL, spec: BurstFrameSpec?)]
     public let cropInsets: CropInsets
     public var blurPixels: [String: Float] = [:]
-    // the burst was planned as a night burst
     public var night = false
     public init(baseURL: URL, frames: [(url: URL, spec: BurstFrameSpec?)], cropInsets: CropInsets) {
         self.baseURL = baseURL; self.frames = frames; self.cropInsets = cropInsets
@@ -194,6 +193,27 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
             }
         }
     }
+
+    public func gravityCaptureAngle() -> CGFloat? {
+        guard let d = activeDevice, let o = motionGate.orientation else { return nil }
+        guard #available(iOS 27.0, *) else { return nil }
+        let coordinator = gravityCoordinators.withLock { cache in
+            if let c = cache[d.uniqueID] { return c }
+            let c = AVCaptureDevice.RotationCoordinator(device: d, previewLayer: nil)
+            cache[d.uniqueID] = c
+            return c
+        }
+        // UIDeviceOrientation and AVCaptureVideoOrientation name landscape from opposite sides
+        let video: AVCaptureVideoOrientation
+        switch o {
+        case .landscapeLeft: video = .landscapeRight
+        case .landscapeRight: video = .landscapeLeft
+        case .portraitUpsideDown: video = .portraitUpsideDown
+        default: video = .portrait
+        }
+        return coordinator.videoRotationAngleRelative(toDeviceOrientation: video)
+    }
+    private let gravityCoordinators = OSAllocatedUnfairLock<[String: AVCaptureDevice.RotationCoordinator]>(initialState: [:])
 
     private static func portraitAngle(of d: AVCaptureDevice) -> CGFloat {
         if #available(iOS 27.0, *) {

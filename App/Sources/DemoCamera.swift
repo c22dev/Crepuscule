@@ -234,6 +234,7 @@ final class DemoCameraBackend: CameraBackend {
         }
     }
     func captureAngle() -> CGFloat? { 90 }
+    func heldOrientation() -> UIDeviceOrientation? { nil }
 
     private func frame() {
         guard let base, let buffer else { return }
