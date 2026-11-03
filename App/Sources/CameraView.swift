@@ -312,7 +312,7 @@ private struct ViewfinderPane: View {
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(system?.title ?? code.title).font(.footnote.weight(.semibold)).lineLimit(1)
                                     if let sub = system?.subtitle ?? code.subtitle {
-                                        Text(sub).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                                        Text(sub).font(.caption2).foregroundStyle(.black.opacity(0.6)).lineLimit(1)
                                     }
                                 }
                                 Spacer(minLength: 0)
@@ -332,7 +332,9 @@ private struct ViewfinderPane: View {
                             ShareLink(item: code.raw)
                         }
                         .animation(Motion.snappy, value: system?.title)
-                        .glassEffect(in: .rect(cornerRadius: Radius.chip))
+                        .foregroundStyle(.black)
+                        .background(Color(red: 1, green: 0.78, blue: 0.04), in: .rect(cornerRadius: Radius.chip))
+                        .shadow(color: .black.opacity(0.25), radius: 8, y: 2)
                         .padding(.bottom, 56).padding(.horizontal, 24)
                     }
                     .transition(.rise)
