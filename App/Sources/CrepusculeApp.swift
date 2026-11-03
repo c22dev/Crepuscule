@@ -28,11 +28,11 @@ struct RootView: View {
     init() {
         let l = Library()
         _library = State(initialValue: l)
-        _camera = State(initialValue: CameraModel(library: l))
+        _camera = State(initialValue: CameraModel(store: l))
     }
 
     var body: some View {
-        CameraView(model: camera, library: library, hero: hero, captureEnabled: !libraryOpen && !settingsOpen && !introOpen, openLibrary: { libraryOpen = true }, openSettings: { settingsOpen = true })
+        CameraView(model: camera, thumbnail: AnyView(NewestPhotoButton(library: library, hero: hero, action: { libraryOpen = true })), captureEnabled: !libraryOpen && !settingsOpen && !introOpen, openSettings: { settingsOpen = true })
             .statusBarHidden(true)
             .task {
                 #if targetEnvironment(simulator)
@@ -43,7 +43,6 @@ struct RootView: View {
                 #else
                 await camera.start()
                 #endif
-                // compile shaders, build pipelines and load the lut once the camera is up, so the first burst / photo / zoom dont wait on it
                 Task.detached(priority: .utility) {
                     ShaderWarmup.mergeKernels()
                     await RenderEngine.shared.prewarm()
@@ -52,14 +51,14 @@ struct RootView: View {
             }
             .task {
                 for await _ in LockedCameraCaptureManager.shared.sessionContentUpdates where UIApplication.shared.applicationState == .active {
-                    await LockedImport.importAll(into: camera)
+                    await LockedImport.importAll(into: library, camera: camera)
                 }
             }
             .onChange(of: router.pending) { drain() }
             .onChange(of: camera.phase) { drain() }
             .onContinueUserActivity(NSUserActivityTypeLockedCameraCapture) { _ in
                 Task {
-                    await LockedImport.importAll(into: camera)
+                    await LockedImport.importAll(into: library, camera: camera)
                     router.request(.library)
                 }
             }
@@ -68,7 +67,7 @@ struct RootView: View {
                 case .active:
                     if !libraryOpen, camera.phase == .running { camera.resume() }
                     Task {
-                        await LockedImport.importAll(into: camera)
+                        await LockedImport.importAll(into: library, camera: camera)
                         await library.retryStaleThumbnails()
                     }
                     drain()

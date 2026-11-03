@@ -71,6 +71,19 @@ targets:
     sources:
       - path: LockedCapture
       - path: Shared
+      # the app's camera, shared so the lock screen gets the same viewfinder and controls
+      - path: Sources/CameraStore.swift
+      - path: Sources/CameraModel.swift
+      - path: Sources/CameraView.swift
+      - path: Sources/CameraControls.swift
+      - path: Sources/ManualControls.swift
+      - path: Sources/Theme.swift
+      - path: Sources/Viewfinder.swift
+      - path: Sources/RenderEngine.swift
+      - path: Sources/SystemCodeAction.swift
+      - path: Sources/DemoCamera.swift
+      - path: Resources/PrintLUT.cube
+        buildPhase: resources
     dependencies:
       - package: Crepuscule
         product: Crepuscule

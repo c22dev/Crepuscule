@@ -6,10 +6,8 @@ import SwiftUI
 
 struct CameraView: View {
     @Bindable var model: CameraModel
-    let library: Library
-    let hero: Namespace.ID
+    let thumbnail: AnyView
     let captureEnabled: Bool
-    let openLibrary: () -> Void
     let openSettings: () -> Void
     @State private var display = ViewfinderDisplay()
     @State private var ambientDisplay = ViewfinderDisplay(fixedSize: CGSize(width: AmbientGrid.width * 2, height: AmbientGrid.height * 2))
@@ -26,6 +24,7 @@ struct CameraView: View {
             default: layout
             }
         }
+        .environment(\.glyphTurn, model.glyphTurn)
         .onAppear { model.pump.display = display; model.pump.ambientDisplay = ambientDisplay }
         .onCameraCaptureEvent(isEnabled: captureEnabled && model.live, defaultSoundDisabled: model.muteShutter) { event in
             if event.phase == .ended { model.pressShutter() }
@@ -66,6 +65,7 @@ struct CameraView: View {
             Image(systemName: "camera.filters")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(model.showLook ? Ink.ember : Ink.paper)
+                .upright()
                 .frame(width: 44, height: 44)
         }
         .buttonStyle(.plain)
@@ -80,6 +80,7 @@ struct CameraView: View {
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(model.flashMode == .off ? Ink.paper : Ink.ember)
                     .contentTransition(.symbolEffect(.replace))
+                    .upright()
                     .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
@@ -98,7 +99,8 @@ struct CameraView: View {
                         .frame(width: 17, height: 17 / r)
                         .frame(width: 18, height: 14)
                         .animation(.snappy, value: model.aspect)
-                    Text(model.aspect.figure).font(.instrument(13))
+                        .upright()
+                    Text(model.aspect.figure).font(.instrument(13)).fixedSize().upright()
                 }
                 .frame(minHeight: 44).padding(.horizontal, 14)
             }
@@ -127,13 +129,14 @@ struct CameraView: View {
                     .foregroundStyle(driveActive || model.timer != .off ? Ink.ember : Ink.paper)
                     .contentTransition(.symbolEffect(.replace))
                     .animation(Motion.snappy, value: driveSymbol)
+                    .upright()
                     .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
             .glassEffect(.regular.interactive(), in: .circle)
             .accessibilityLabel("Drive \(model.drive.title), timer \(model.timer == .off ? "off" : "\(model.timer.rawValue) seconds")")
             Button(action: openSettings) {
-                Image(systemName: "gearshape").font(.system(size: 16, weight: .medium)).frame(width: 44, height: 44)
+                Image(systemName: "gearshape").font(.system(size: 16, weight: .medium)).upright().frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
             .glassEffect(.regular.interactive(), in: .circle)
@@ -141,7 +144,6 @@ struct CameraView: View {
         }
     }
 
-    // auto on in low light (sparkle), tap to turn it off for this scene
     private var nightButton: some View {
         Button { model.toggleNight() } label: {
             Image(systemName: model.nightActive ? "moon.fill" : "moon")
@@ -157,6 +159,7 @@ struct CameraView: View {
                         .opacity(model.nightActive ? 1 : 0)
                         .scaleEffect(model.nightActive ? 1 : 0.4)
                 }
+                .upright()
         }
         .buttonStyle(.plain)
         .glassEffect(.regular.interactive(), in: .circle)
@@ -189,6 +192,7 @@ struct CameraView: View {
         }
         .animation(Motion.snappy, value: status?.1)
         .frame(minWidth: 64, minHeight: 44).padding(.horizontal, Space.s + 2)
+        .upright(fitted: true)
         .glassEffect(.regular.interactive(), in: .rect(cornerRadius: Radius.chip))
         .overlay {
             if model.manualOpen { RoundedRectangle(cornerRadius: Radius.chip).strokeBorder(Ink.dusk, lineWidth: 1.5) }
@@ -235,13 +239,14 @@ struct CameraView: View {
 
     private var bottomRow: some View {
         HStack {
-            NewestPhotoButton(library: library, hero: hero, action: openLibrary)
+            thumbnail
             Spacer()
             ShutterButton(model: model)
             Spacer()
             Button { model.flipCamera() } label: {
                 Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 17))
                     .symbolEffect(.rotate.clockwise, options: .speed(1.6), value: model.flips)
+                    .upright()
                     .frame(width: 48, height: 48)
             }
             .buttonStyle(.plain)
@@ -252,6 +257,47 @@ struct CameraView: View {
         }
         .padding(.horizontal, 22)
     }
+}
+
+extension EnvironmentValues {
+    @Entry var glyphTurn: Double = 0
+}
+
+private struct Upright: ViewModifier {
+    let fitted: Bool
+    @Environment(\.glyphTurn) private var turn
+    func body(content: Content) -> some View {
+        Group {
+            if fitted {
+                TurnedFrame(turn: turn) { content.rotationEffect(.degrees(turn)) }
+            } else {
+                content.rotationEffect(.degrees(turn))
+            }
+        }
+        .animation(Motion.smooth, value: turn)
+    }
+}
+
+// swaps width and height as it turns so a wide chip goes tall, no bulge at 45°
+private struct TurnedFrame: Layout {
+    var turn: Double
+    var animatableData: Double {
+        get { turn }
+        set { turn = newValue }
+    }
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let s = subviews.first?.sizeThatFits(.unspecified) else { return .zero }
+        let t = min(abs(turn) / 90, 1)
+        return CGSize(width: s.width + (s.height - s.width) * t, height: s.height + (s.width - s.height) * t)
+    }
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard let v = subviews.first else { return }
+        v.place(at: CGPoint(x: bounds.midX, y: bounds.midY), anchor: .center, proposal: ProposedViewSize(v.sizeThatFits(.unspecified)))
+    }
+}
+
+extension View {
+    func upright(fitted: Bool = false) -> some View { modifier(Upright(fitted: fitted)) }
 }
 
 private struct ViewfinderPane: View {
@@ -308,6 +354,7 @@ private struct ViewfinderPane: View {
                     Text("\(n)").font(.instrument(120, weight: .ultraLight)).tracking(Tracking.tight).foregroundStyle(.white)
                         .shadow(color: .black.opacity(0.35), radius: 12)
                         .contentTransition(.numericText(countsDown: true)).animation(Motion.snappy, value: n)
+                        .upright()
                         .transition(.scale(scale: 1.4).combined(with: .opacity))
                         .allowsHitTesting(false)
                 }
@@ -441,9 +488,13 @@ private struct ViewfinderPane: View {
 
     private func performFallback(_ code: ScannedCode) {
         if let url = code.actionURL {
+            #if CREPUSCULE_APP
             UIApplication.shared.open(url) { ok in
                 if !ok { UIPasteboard.general.string = code.raw; model.notice = "Copied to clipboard" }
             }
+            #else
+            UIPasteboard.general.string = url.absoluteString; model.notice = "Link copied"
+            #endif
             return
         }
         if case .wifi(let ssid, let password?, _, _) = code.kind {
@@ -576,6 +627,7 @@ private struct LensPill: View {
                         if on { Text(parts.unit).engraved(size: 8).transition(.opacity.combined(with: .scale(scale: 0.6, anchor: .top))) }
                     }
                     .foregroundStyle(on ? Ink.paper : Ink.paper.opacity(0.82))
+                    .upright()
                     .frame(width: 48, height: 48)
                     .background {
                         if on { Circle().fill(Ink.dusk).matchedGeometryEffect(id: "on", in: pill) }
@@ -719,112 +771,6 @@ struct ShutterButton: View {
     }
 }
 
-struct NewestPhotoButton: View {
-    static let heroID = "newest-photo"
-    let library: Library
-    let hero: Namespace.ID
-    let action: () -> Void
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var ringFraction: CGFloat = 0
-    @State private var ringOpacity: Double = 0
-    @State private var popScale: CGFloat = 1
-    @State private var ringRun = 0
-
-    private var mergingID: UUID? {
-        guard let id = library.newest?.id, library.merging.contains(id) else { return nil }
-        return id
-    }
-
-    private var mergeProgress: Double { mergingID.flatMap { library.mergeProgress[$0] } ?? 0 }
-
-    var body: some View {
-        let still = reduceMotion
-        let shape = ConcentricRectangle(uniformTopCorners: .fixed(Radius.thumb), bottomLeadingCorner: .concentric(minimum: .fixed(Radius.thumb)), bottomTrailingCorner: .fixed(Radius.thumb))
-        Button(action: action) {
-            ZStack {
-                Ink.raised
-                if let id = library.newest?.id, let image = library.thumbnail(id) {
-                    Image(uiImage: image).resizable().scaledToFill().id(id)
-                        .transition(.asymmetric(insertion: .scale(scale: 1.6).combined(with: .opacity), removal: .opacity))
-                }
-            }
-            .frame(width: 76, height: 76)
-            .clipShape(shape)
-            .overlay(shape.stroke(Color(white: 0.32), lineWidth: 2.5))
-            .overlay {
-                shape.stroke(Ink.duskRing, lineWidth: 2.5)
-                    .mask(DuskSweep(fraction: ringFraction, wedge: true))
-                    .shadow(color: Ink.dusk.opacity(0.5), radius: 3)
-                    .opacity(ringOpacity)
-                    .allowsHitTesting(false)
-            }
-            .contentShape(shape)
-            .animation(Motion.smooth, value: library.newest?.id)
-            .matchedTransitionSource(id: Self.heroID, in: hero) { $0.clipShape(RoundedRectangle(cornerRadius: Radius.thumb, style: .continuous)) }
-            .keyframeAnimator(initialValue: 1.0, trigger: library.newest?.id) { content, scale in
-                content.scaleEffect(still ? 1 : scale)
-            } keyframes: { _ in
-                SpringKeyframe(0.86, duration: 0.12, spring: .snappy)
-                SpringKeyframe(1.0, duration: 0.45, spring: .bouncy(duration: 0.45, extraBounce: 0.15))
-            }
-            .scaleEffect(popScale)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Open newest photo")
-        .accessibilityValue(mergingID != nil ? "Merging burst" : "")
-        .onChange(of: mergingID, initial: true) { old, new in
-            if let new {
-                if new != old || ringOpacity == 0 { startRing(new) }
-            } else if let old {
-                if library.newest?.id == old, library.item(old)?.mergeAlg != nil { finishRing() } else { hideRing() }
-            }
-        }
-        .onChange(of: mergeProgress) { _, p in
-            guard mergingID != nil, ringOpacity > 0 else { return }
-            // stays a hair short of full so finishRing has a last step
-            let target = CGFloat(min(p, 1)) * 0.95
-            guard target > ringFraction else { return }
-            if reduceMotion { ringFraction = target } else { withAnimation(.easeOut(duration: 0.35)) { ringFraction = target } }
-        }
-    }
-
-    private func startRing(_ id: UUID) {
-        ringRun += 1
-        var reset = Transaction()
-        reset.disablesAnimations = true
-        withTransaction(reset) { ringFraction = 0 }
-        let run = ringRun
-        Task { @MainActor in
-            guard run == ringRun else { return }
-            withAnimation(Motion.fade) { ringOpacity = reduceMotion ? 0.7 : 1 }
-            let target = CGFloat(min(library.mergeProgress[id] ?? 0, 1)) * 0.95
-            if reduceMotion { ringFraction = target } else { withAnimation(.easeOut(duration: 0.35)) { ringFraction = target } }
-        }
-    }
-
-    private func finishRing() {
-        ringRun += 1
-        let run = ringRun
-        withAnimation(.easeOut(duration: 0.3)) { ringFraction = 1; ringOpacity = 1 }
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        if !reduceMotion {
-            withAnimation(Motion.pop) { popScale = 1.06 }
-        }
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(160))
-            withAnimation(Motion.pop) { popScale = 1 }
-            try? await Task.sleep(for: .milliseconds(340))
-            guard run == ringRun else { return }
-            withAnimation(.easeOut(duration: 0.5)) { ringOpacity = 0 }
-        }
-    }
-
-    private func hideRing() {
-        ringRun += 1
-        withAnimation(Motion.fade) { ringOpacity = 0 }
-    }
-}
-
 private struct PermissionView: View {
     var body: some View {
         ContentUnavailableView {
@@ -832,10 +778,14 @@ private struct PermissionView: View {
         } description: {
             Text("Turn on camera access to shoot RAW.")
         } actions: {
+            #if CREPUSCULE_APP
             Button("Open Settings") {
                 if let u = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(u) }
             }
             .buttonStyle(.glassProminent).tint(Ink.dusk)
+            #else
+            Text("Unlock and open Crepuscule to allow it.")
+            #endif
         }
     }
 }

@@ -99,10 +99,14 @@ private final class Presenter: NSObject {
     func actionDidUpdateTitle(_ title: Any?) {}
 
     static func top() -> UIViewController? {
+        #if !CREPUSCULE_APP
+        return nil
+        #else
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
         let window = scenes.flatMap(\.windows).first(where: \.isKeyWindow) ?? scenes.first?.windows.first
         var vc = window?.rootViewController
         while let next = vc?.presentedViewController, !next.isBeingDismissed { vc = next }
         return vc
+        #endif
     }
 }

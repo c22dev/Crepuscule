@@ -182,14 +182,6 @@ struct AspectTile: View {
     }
 }
 
-extension Library {
-    nonisolated static let builtInLookNames = ["Factory", "Optical", "No Halation", "Mono"]
-
-    var allLooks: [(name: String, grade: Grade)] {
-        [("Factory", Presets.factoryDefault), ("Mono", Presets.blackAndWhite)] + looks.map { ($0.name, $0.grade) }
-    }
-}
-
 struct AmbientBackdrop: View {
     let display: ViewfinderDisplay
     var body: some View {

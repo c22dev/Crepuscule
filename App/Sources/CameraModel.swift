@@ -35,6 +35,7 @@ protocol CameraBackend: AnyObject {
     func manualRange() -> ManualRange?
     func reading() -> ExposureReading?
     func captureAngle() -> CGFloat?
+    func heldOrientation() -> UIDeviceOrientation?
     func shoot(mode: DriveMode, timer: SelfTimer, stack: Bool, retention: Double, metering: CameraCapture.BracketMetering, crop: Double, progress: @escaping @Sendable (DriveProgress) -> Void) async throws -> [CaptureResult]
     var captureSession: AVCaptureSession? { get }
     var sessionQueue: DispatchQueue? { get }
@@ -44,9 +45,8 @@ final class DeviceCameraBackend: CameraBackend {
     private let capture: CameraCapture
     private var rotation: AVCaptureDevice.RotationCoordinator?
 
-    init() {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("Captures")
-        capture = CameraCapture(directory: dir)
+    init(directory: URL? = nil) {
+        capture = CameraCapture(directory: directory ?? FileManager.default.temporaryDirectory.appendingPathComponent("Captures"))
     }
 
     var onFrame: ((CVPixelBuffer, String?) -> Void)? {
@@ -98,7 +98,8 @@ final class DeviceCameraBackend: CameraBackend {
     func setManual(_ m: ManualSettings) { capture.setManual(m) }
     func manualRange() -> ManualRange? { capture.manualRange() }
     func reading() -> ExposureReading? { capture.reading() }
-    func captureAngle() -> CGFloat? { rotation?.videoRotationAngleForHorizonLevelCapture }
+    func captureAngle() -> CGFloat? { capture.gravityCaptureAngle() ?? rotation?.videoRotationAngleForHorizonLevelCapture }
+    func heldOrientation() -> UIDeviceOrientation? { capture.motionGate.orientation }
     func shoot(mode: DriveMode, timer: SelfTimer, stack: Bool, retention: Double, metering: CameraCapture.BracketMetering, crop: Double, progress: @escaping @Sendable (DriveProgress) -> Void) async throws -> [CaptureResult] {
         capture.burstEnabled = stack
         capture.bracketMetering = metering
@@ -230,6 +231,8 @@ final class CameraModel {
     private(set) var flash = false
     private(set) var formatLabel = "RAW"
     private(set) var landscapeHold = false
+    // turns glyphs upright, the layout stays portrait like the system camera
+    private(set) var glyphTurn: Double = 0
     private(set) var live = false
     private(set) var controlsFullscreen = false
     var drive = DriveMode.single
@@ -256,11 +259,9 @@ final class CameraModel {
     var nightBursts = UserDefaults.standard.object(forKey: "nightBursts") as? Bool ?? true {
         didSet { UserDefaults.standard.set(nightBursts, forKey: "nightBursts"); syncNight(); publishLockedContext() }
     }
-    // low light right now, night mode would kick in
     var nightAvailable: Bool {
-        nightBursts && !manual.exposureManual && library.burstMerge && formatLabel != "PRORAW" && NightBurst.applies(iso: reading.iso, duration: reading.duration)
+        nightBursts && !manual.exposureManual && store.burstMerge && formatLabel != "PRORAW" && NightBurst.applies(iso: reading.iso, duration: reading.duration)
     }
-    // turned off from the viewfinder for this scene, comes back once the light does
     var nightDeclined = false {
         didSet { if nightDeclined != oldValue { syncNight() } }
     }
@@ -281,7 +282,7 @@ final class CameraModel {
 
     let pump = FramePump()
     private let backend: CameraBackend
-    private let library: Library
+    private let store: any CameraStore
     private var shot: Task<Void, Never>?
     private var ticker: Task<Void, Never>?
     private var controls: CameraControls?
@@ -290,14 +291,15 @@ final class CameraModel {
     var sessionQueue: DispatchQueue? { backend.sessionQueue }
     var previewAngle: CGFloat { backend.previewAngle }
 
-    init(library: Library) {
-        self.library = library
+    // the lock screen must write raws to its session folder
+    init(store: any CameraStore, captureDirectory: URL? = nil) {
+        self.store = store
         #if targetEnvironment(simulator)
         backend = DemoCameraBackend()
         #else
-        backend = DeviceCameraBackend()
+        backend = DeviceCameraBackend(directory: captureDirectory)
         #endif
-        aspect = library.settings.aspectRatioPreset
+        aspect = store.aspectRatioPreset
     }
 
     var backLenses: [CameraLens] { lenses.filter { $0.facing == .back } }
@@ -455,7 +457,7 @@ final class CameraModel {
             pump.drawsPlain = backend.captureSession == nil
             backend.onStats = { [weak self] s in Task { @MainActor in self?.stats = s } }
             syncPump()
-            await backend.setProRAWPreferred(!library.burstMerge)
+            await backend.setProRAWPreferred(!store.burstMerge)
             let wanted = UserDefaults.standard.integer(forKey: "defaultLens")
             let result = try await backend.prepare { wanted != 0 && $0.facing == .back && abs($0.focalLength - wanted) <= 2 }
             Startup.log.notice("configured \(began.duration(to: .now), privacy: .public)")
@@ -491,12 +493,13 @@ final class CameraModel {
         switching = true; swapping = true
         Task {
             // reinstalling resets exposure, keep the ui in step
-            if await backend.setProRAWPreferred(!library.burstMerge) { bias = 0; exposureLocked = false }
+            if await backend.setProRAWPreferred(!store.burstMerge) { bias = 0; exposureLocked = false }
             formatLabel = backend.formatLabel
             switching = false; swapping = false
         }
     }
     func pause() {
+        publishLockedContext()
         live = false
         cancelShot()
         backend.pause()
@@ -510,9 +513,11 @@ final class CameraModel {
                 if self.scannedCode?.raw != code {
                     self.scannedCode = ScannedCode(code)
                     self.codeAction = nil
+                    #if CREPUSCULE_APP
                     SystemCodeAction.resolve(code) { [weak self] action in
                         if self?.scannedCode?.raw == code { self?.codeAction = action }
                     }
+                    #endif
                 }
                 self.codeExpiry?.cancel()
                 self.codeExpiry = Task { [weak self] in
@@ -544,9 +549,19 @@ final class CameraModel {
     }
 
     private func publishLockedContext() {
-        let context = LockedCaptureContext(stack: library.burstMerge, muteShutter: muteShutter, shutterLimit: shutterLimit,
-                                           nightBursts: nightBursts, highlightRetentionStops: library.settings.highlightRetentionStops)
+        #if CREPUSCULE_APP
+        let d = UserDefaults.standard, json = JSONEncoder()
+        var context = LockedCaptureContext()
+        context.stack = store.burstMerge; context.muteShutter = muteShutter; context.shutterLimit = shutterLimit
+        context.nightBursts = nightBursts; context.highlightRetentionStops = store.highlightRetentionStops
+        context.bracketMetering = store.bracketMetering.rawValue; context.aspect = store.aspectRatioPreset.rawValue
+        context.look = try? json.encode(store.perImageDefaults)
+        context.looks = store.allLooks.compactMap { l in (try? json.encode(l.grade)).map { .init(name: l.name, grade: $0) } }
+        context.showGrid = showGrid; context.showLook = showLook
+        context.defaultLens = d.integer(forKey: "defaultLens"); context.lensReadout = d.string(forKey: "lensReadout")
+        context.vignette = d.object(forKey: "appleVignetteAmount") as? Double ?? 1
         Task { try? await CrepusculeCaptureIntent.updateAppContext(context) }
+        #endif
     }
 
     private var controlLenses: [CameraLens] {
@@ -626,7 +641,7 @@ final class CameraModel {
     }
 
     private func syncPump() {
-        pump.set(grade: library.settings.perImageDefaults, look: showLook)
+        pump.set(grade: store.perImageDefaults, look: showLook)
     }
 
     private func startTicker() {
@@ -638,6 +653,10 @@ final class CameraModel {
                 if let a = backend.captureAngle() {
                     let hold = abs(a - 90) > 45 && abs(a - 270) > 45
                     if hold != landscapeHold { landscapeHold = hold }
+                }
+                if let o = backend.heldOrientation() {
+                    let turn: Double = o == .landscapeLeft ? 90 : o == .landscapeRight ? -90 : 0
+                    if turn != glyphTurn { glyphTurn = turn }
                 }
                 try? await Task.sleep(nanoseconds: 180_000_000)
             }
@@ -714,13 +733,13 @@ final class CameraModel {
     }
 
     func chooseLook(_ grade: Grade) {
-        library.settings.perImageDefaults = grade
+        store.perImageDefaults = grade
         showLook = true
         syncPump()
         Haptics.tick()
     }
-    var defaultLook: Grade { library.settings.perImageDefaults }
-    var looks: [(name: String, grade: Grade)] { library.allLooks }
+    var defaultLook: Grade { store.perImageDefaults }
+    var looks: [(name: String, grade: Grade)] { store.allLooks }
 
     func focus(at p: CGPoint) {
         exposureLocked = false
@@ -750,7 +769,7 @@ final class CameraModel {
 
     func setAspect(_ a: AspectRatioPreset) {
         aspect = a
-        library.settings.aspectRatioPreset = a
+        store.aspectRatioPreset = a
         Haptics.tick()
     }
 
@@ -767,7 +786,7 @@ final class CameraModel {
         if firing { cancelShot(); return }
         firing = true
         Haptics.shutter()
-        let stack = library.burstMerge, retention = library.settings.highlightRetentionStops, metering = library.bracketMetering, shotBias = bias
+        let stack = store.burstMerge, retention = store.highlightRetentionStops, metering = store.bracketMetering, shotBias = bias
         let night = nightActive
         let drive = driveOverride ?? drive, timer = timerOverride ?? timer, aspect = aspect, crop = active?.cropFactor ?? 1
         shot = Task { [weak self] in
@@ -792,8 +811,7 @@ final class CameraModel {
                     case .burst3, .burst5: tag = "\(i + 1)/\(drive.shots)"
                     case .bracket3, .bracket5: tag = String(format: "%+.0f EV", drive.evOffsets[i])
                     }
-                    let item = try library.ingest(base: r.baseURL, frames: r.frames.map { ($0.url, Float($0.spec?.exposureScale ?? 1)) }, blur: r.blurPixels, bias: shotBias, aspect: aspect, tag: tag, cropFactor: crop, night: night)
-                    if library.settings.autoExport { autoExport(item) }
+                    if let job = try store.file(r, bias: shotBias, aspect: aspect, tag: tag, cropFactor: crop, night: night) { runAfterCapture(job) }
                 }
             } catch is CancellationError {
                 Haptics.warn()
@@ -804,17 +822,8 @@ final class CameraModel {
         }
     }
 
-    func file(lockedShot shot: LockedShot, in folder: URL) throws {
-        let item = try library.ingest(base: folder.appendingPathComponent(shot.base),
-                                      frames: shot.frames.map { (folder.appendingPathComponent($0.name), $0.scale) },
-                                      blur: shot.blur, bias: 0, aspect: library.settings.aspectRatioPreset, tag: nil, night: shot.night == true)
-        if library.settings.autoExport { autoExport(item) }
-    }
-
-    private func autoExport(_ item: PhotoItem) {
-        Task { [library] in
-            do { try await library.saveToPhotos(item) } catch { notice = error.localizedDescription }
-        }
+    func runAfterCapture(_ job: @escaping () async throws -> Void) {
+        Task { do { try await job() } catch { notice = error.localizedDescription } }
     }
 
     private func cancelShot() { shot?.cancel(); shot = nil }

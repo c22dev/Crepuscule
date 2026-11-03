@@ -300,9 +300,9 @@ final class Library {
     }
 
     @discardableResult
-    func add(raw source: URL, frames: [URL] = [], aspect: AspectRatioPreset, driveTag: String?, move: Bool = true, cropFactor: Double = 1, nightBurst: Bool = false) throws -> PhotoItem {
+    func add(raw source: URL, frames: [URL] = [], aspect: AspectRatioPreset, driveTag: String?, move: Bool = true, cropFactor: Double = 1, nightBurst: Bool = false, look: Grade? = nil) throws -> PhotoItem {
         guard let size = Self.uprightSize(of: source) else { throw LibraryError.notRaw(source.lastPathComponent) }
-        var grade = settings.perImageDefaults
+        var grade = look ?? settings.perImageDefaults
         grade.cropInsets = aspect.uprightCropInsets(imageWidth: size.width, imageHeight: size.height, cropFactor: cropFactor)
         grade.nightClean = nightBurst ? true : nil
         let number = (items.map(\.number).max() ?? 0) + 1
@@ -328,8 +328,8 @@ final class Library {
     }
 
     @discardableResult
-    func ingest(base: URL, frames: [(url: URL, scale: Float)], blur: [String: Float], bias: Float, aspect: AspectRatioPreset, tag: String?, cropFactor: Double = 1, night: Bool = false) throws -> PhotoItem {
-        let item = try add(raw: base, frames: frames.map(\.url), aspect: aspect, driveTag: tag, cropFactor: cropFactor, nightBurst: night)
+    func ingest(base: URL, frames: [(url: URL, scale: Float)], blur: [String: Float], bias: Float, aspect: AspectRatioPreset, tag: String?, cropFactor: Double = 1, night: Bool = false, look: Grade? = nil) throws -> PhotoItem {
+        let item = try add(raw: base, frames: frames.map(\.url), aspect: aspect, driveTag: tag, cropFactor: cropFactor, nightBurst: night, look: look)
         if frames.count > 1 {
             var scales: [String: Float] = [:]
             for f in frames { scales[f.url.lastPathComponent] = f.scale }
@@ -464,12 +464,29 @@ final class Library {
     }
 }
 
-enum ExposureText {
-    static func shutter(_ s: Double) -> String {
-        guard s > 0 else { return "—" }
-        if s >= 0.3 { return String(format: "%.1f″", s) }
-        return "1/\(Int((1 / s).rounded()))"
+extension Library {
+    nonisolated static let builtInLookNames = ["Factory", "Mono"]
+
+    var allLooks: [(name: String, grade: Grade)] {
+        [("Factory", Presets.factoryDefault), ("Mono", Presets.blackAndWhite)] + looks.map { ($0.name, $0.grade) }
     }
-    static func ev(_ v: Float) -> String { String(format: "%+.1f", v) }
-    static func aperture(_ f: Float) -> String { f >= 10 ? String(format: "ƒ/%.0f", f) : String(format: "ƒ/%.1f", f) }
+}
+
+extension Library: CameraStore {
+    var highlightRetentionStops: Double { settings.highlightRetentionStops }
+    var aspectRatioPreset: AspectRatioPreset {
+        get { settings.aspectRatioPreset }
+        set { settings.aspectRatioPreset = newValue }
+    }
+    var perImageDefaults: Grade {
+        get { settings.perImageDefaults }
+        set { settings.perImageDefaults = newValue }
+    }
+
+    func file(_ r: CaptureResult, bias: Float, aspect: AspectRatioPreset, tag: String?, cropFactor: Double, night: Bool) throws -> (() async throws -> Void)? {
+        let item = try ingest(base: r.baseURL, frames: r.frames.map { ($0.url, Float($0.spec?.exposureScale ?? 1)) }, blur: r.blurPixels,
+                              bias: bias, aspect: aspect, tag: tag, cropFactor: cropFactor, night: night)
+        guard settings.autoExport else { return nil }
+        return { [self] in _ = try await saveToPhotos(item) }
+    }
 }

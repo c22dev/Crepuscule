@@ -3,17 +3,27 @@
 import AppIntents
 import Foundation
 
+// lock screen cant read app data so looks go as Grade json, also built into the widget (no Crepuscule)
 struct LockedCaptureContext: Codable, Sendable {
+    struct Look: Codable, Sendable { var name: String; var grade: Data }
+
     var stack = true
     var muteShutter = false
     var shutterLimit = 0
     var nightBursts = true
     var highlightRetentionStops = 2.0
+    var bracketMetering: String?
+    var aspect: Int?
+    var look: Data?
+    var looks: [Look] = []
+    var showGrid = false
+    var showLook = false
+    var scanCodes = false
+    var defaultLens = 0
+    var lensReadout: String?
+    var vignette = 1.0
 
-    init(stack: Bool = true, muteShutter: Bool = false, shutterLimit: Int = 0, nightBursts: Bool = true, highlightRetentionStops: Double = 2) {
-        self.stack = stack; self.muteShutter = muteShutter; self.shutterLimit = shutterLimit
-        self.nightBursts = nightBursts; self.highlightRetentionStops = highlightRetentionStops
-    }
+    init() {}
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -22,6 +32,16 @@ struct LockedCaptureContext: Codable, Sendable {
         shutterLimit = try c.decodeIfPresent(Int.self, forKey: .shutterLimit) ?? 0
         nightBursts = try c.decodeIfPresent(Bool.self, forKey: .nightBursts) ?? true
         highlightRetentionStops = try c.decodeIfPresent(Double.self, forKey: .highlightRetentionStops) ?? 2
+        bracketMetering = try c.decodeIfPresent(String.self, forKey: .bracketMetering)
+        aspect = try c.decodeIfPresent(Int.self, forKey: .aspect)
+        look = try c.decodeIfPresent(Data.self, forKey: .look)
+        looks = try c.decodeIfPresent([Look].self, forKey: .looks) ?? []
+        showGrid = try c.decodeIfPresent(Bool.self, forKey: .showGrid) ?? false
+        showLook = try c.decodeIfPresent(Bool.self, forKey: .showLook) ?? false
+        scanCodes = try c.decodeIfPresent(Bool.self, forKey: .scanCodes) ?? false
+        defaultLens = try c.decodeIfPresent(Int.self, forKey: .defaultLens) ?? 0
+        lensReadout = try c.decodeIfPresent(String.self, forKey: .lensReadout)
+        vignette = try c.decodeIfPresent(Double.self, forKey: .vignette) ?? 1
     }
 }
 
