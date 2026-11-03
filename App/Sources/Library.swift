@@ -159,7 +159,7 @@ final class Library {
         let blurs: [Float?] = names.map { $0 == baseName ? (b[item.rawName] ?? b[baseName]) : b[$0] }
         let captureBias = item.captureBias ?? 0
         let crop = item.cropFactor ?? 1
-        let trySuperRes = crop >= 1.95 && frames.filter({ abs($0.scale - 1) < 0.001 }).count >= 3
+        let trySuperRes = crop >= BurstZoom.superResCrop && frames.filter({ abs($0.scale - 1) < 0.001 }).count >= 3
         var background = UIBackgroundTaskIdentifier.invalid
         background = UIApplication.shared.beginBackgroundTask(withName: "Burst merge") {
             UIApplication.shared.endBackgroundTask(background)

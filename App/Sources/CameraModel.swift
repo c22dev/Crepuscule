@@ -32,7 +32,7 @@ protocol CameraBackend: AnyObject {
     @discardableResult func setProRAWPreferred(_ on: Bool) async -> Bool
     func reading() -> ExposureReading?
     func captureAngle() -> CGFloat?
-    func shoot(mode: DriveMode, timer: SelfTimer, stack: Bool, retention: Double, metering: CameraCapture.BracketMetering, progress: @escaping @Sendable (DriveProgress) -> Void) async throws -> [CaptureResult]
+    func shoot(mode: DriveMode, timer: SelfTimer, stack: Bool, retention: Double, metering: CameraCapture.BracketMetering, crop: Double, progress: @escaping @Sendable (DriveProgress) -> Void) async throws -> [CaptureResult]
     var captureSession: AVCaptureSession? { get }
     var sessionQueue: DispatchQueue? { get }
 }
@@ -94,10 +94,11 @@ final class DeviceCameraBackend: CameraBackend {
     @discardableResult func setProRAWPreferred(_ on: Bool) async -> Bool { (try? await capture.setPrefersProRAW(on)) ?? false }
     func reading() -> ExposureReading? { capture.reading() }
     func captureAngle() -> CGFloat? { rotation?.videoRotationAngleForHorizonLevelCapture }
-    func shoot(mode: DriveMode, timer: SelfTimer, stack: Bool, retention: Double, metering: CameraCapture.BracketMetering, progress: @escaping @Sendable (DriveProgress) -> Void) async throws -> [CaptureResult] {
+    func shoot(mode: DriveMode, timer: SelfTimer, stack: Bool, retention: Double, metering: CameraCapture.BracketMetering, crop: Double, progress: @escaping @Sendable (DriveProgress) -> Void) async throws -> [CaptureResult] {
         capture.burstEnabled = stack
         capture.bracketMetering = metering
         capture.highlightRetentionStops = retention
+        capture.zoomCropFactor = crop
         return try await capture.runDrive(mode: mode, timer: timer, rotationAngle: captureAngle(), progress: progress)
     }
 }
@@ -598,7 +599,7 @@ final class CameraModel {
                 progress = nil
             }
             do {
-                let results = try await backend.shoot(mode: drive, timer: timer, stack: stack, retention: retention, metering: metering) { [weak self] p in
+                let results = try await backend.shoot(mode: drive, timer: timer, stack: stack, retention: retention, metering: metering, crop: crop) { [weak self] p in
                     Task { @MainActor in
                         guard let self else { return }
                         self.progress = p

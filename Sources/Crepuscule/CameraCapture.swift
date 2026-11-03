@@ -71,6 +71,7 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
     private var device: AVCaptureDevice?
     private var pending: [Int64: BurstDelegate] = [:]
     public var highlightRetentionStops = 2.0
+    public var zoomCropFactor = 1.0
     public var aspectRatio: AspectRatioPreset = .native
     public var customAspect = (width: 16.0, height: 9.0)
     public let directory: URL
@@ -525,11 +526,17 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
                         let limits = BurstPlanner.Limits(minISO: f.minISO, maxISO: f.maxISO,
                                                          minDuration: CMTimeGetSeconds(f.minExposureDuration), maxDuration: CMTimeGetSeconds(f.maxExposureDuration))
                         let fov = Double(f.videoFieldOfView) * .pi / 180
+                        // blur is judged in output pixels, super res upscales the crop up to 2x
+                        let srScale = zoomCropFactor >= BurstZoom.superResCrop ? min(zoomCropFactor, 2) : 1
                         let night = nightBursts && fov > 0
-                            ? NightBurst(rotationRate: motionGate.rotationRate, pixelsPerRadian: Double(output.maxPhotoDimensions.width) / fov) : nil
+                            ? NightBurst(rotationRate: motionGate.rotationRate, pixelsPerRadian: Double(output.maxPhotoDimensions.width) / fov * srScale) : nil
+                        let zoom = BurstZoom(cropFactor: zoomCropFactor,
+                                             focalLength: Double(CameraLens.equivalentFocalLength(horizontalFOVDegrees: Double(f.videoFieldOfView))) * zoomCropFactor,
+                                             rotationRate: motionGate.rotationRate,
+                                             pixelsPerRadian: fov > 0 ? Double(output.maxPhotoDimensions.width) / fov * srScale : 0)
                         meterLog.notice("[Burst] meter locked ISO \(Int(device.iso), privacy: .public) @ 1/\(Int((1 / max(CMTimeGetSeconds(device.exposureDuration), 1e-6)).rounded()), privacy: .public), bias \(String(format: "%+.2f", device.exposureTargetBias), privacy: .public) (offset \(String(format: "%+.2f", device.exposureTargetOffset), privacy: .public), adjusting \(device.isAdjustingExposure ? 1 : 0, privacy: .public), mode \(device.exposureMode.rawValue, privacy: .public))")
                         let plan = BurstPlanner.plan(iso: device.iso, duration: CMTimeGetSeconds(device.exposureDuration), limits: limits,
-                                                     hints: hints, highlightRetentionStops: highlightRetentionStops, night: night)
+                                                     hints: hints, highlightRetentionStops: highlightRetentionStops, night: night, zoom: zoom)
                         runBurst(plan, format: format, gps: gpsMetadata, continuation: c)
                     }
                 } catch { c.resume(throwing: error) }

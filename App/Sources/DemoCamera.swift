@@ -249,7 +249,7 @@ final class DemoCameraBackend: CameraBackend {
 
     var flashMode = AVCaptureDevice.FlashMode.off
 
-    func shoot(mode: DriveMode, timer: SelfTimer, stack: Bool, retention: Double, metering: CameraCapture.BracketMetering, progress: @escaping @Sendable (DriveProgress) -> Void) async throws -> [CaptureResult] {
+    func shoot(mode: DriveMode, timer: SelfTimer, stack: Bool, retention: Double, metering: CameraCapture.BracketMetering, crop: Double, progress: @escaping @Sendable (DriveProgress) -> Void) async throws -> [CaptureResult] {
         let seed = Double.random(in: 0...20)
         let runner = DriveRunner<CaptureResult>(mode: mode, timer: timer, shoot: { ev in
             try await Task.sleep(nanoseconds: 180_000_000)
