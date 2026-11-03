@@ -1,10 +1,8 @@
-.build/
-.swiftpm/
 /Assets/
 *.ipa
 Tests/
-App/Crepuscule.xcodeproj/xcuserdata/
-App/Crepuscule.xcodeproj/project.xcworkspace/xcuserdata/
+Crepuscule.xcodeproj/xcuserdata/
+Crepuscule.xcodeproj/project.xcworkspace/xcuserdata/
 DerivedData/
 .DS_Store
 build/

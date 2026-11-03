@@ -41,8 +41,7 @@ Then :
 ```
 git clone https://github.com/c22dev/Crepuscule
 cd Crepuscule
-mkdir -p Tests/CrepusculeTests
-open App/Crepuscule.xcodeproj
+open Crepuscule.xcodeproj
 ```
 
 ## Limitations

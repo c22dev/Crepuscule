@@ -57,7 +57,7 @@ public final class ColorPipelineRenderer {
         if let library {
             self.library = library
         } else {
-            guard let url = Bundle.module.url(forResource: "Shaders", withExtension: "metal") else {
+            guard let url = Bundle.main.url(forResource: "Shaders", withExtension: "metal", subdirectory: "Shaders") else {
                 throw PipelineError.shader("Shaders.metal missing from bundle")
             }
             let options = MTLCompileOptions()
@@ -336,7 +336,7 @@ public final class ColorPipelineRenderer {
     }
 
     static func parseCube(url: URL) throws -> (size: Int, values: [Float]) {
-        let text = try String(contentsOf: url, encoding: .utf8)
+        let text = try String(contentsOf: url)
         var size = 0
         var values: [Float] = []
         for line in text.split(whereSeparator: \.isNewline) {

@@ -7,49 +7,89 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0360FF17CF295C5CBDA11FDC /* SuperResolution.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEEFC3562A55F0EEBE73BD70 /* SuperResolution.swift */; };
 		05449163B98B4E8E9F7EB87A /* EditScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5C712F097A45A05A7D1DFC8 /* EditScreen.swift */; };
+		067C12EB10E079F597009866 /* MotionGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B149C93749A07B67DB1F7B6 /* MotionGate.swift */; };
 		06BC0B4DBB2355DC69187485 /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FED7960963153E604D1A867 /* CameraView.swift */; };
+		08EDD16D818C9C72AD2FE00D /* DNGMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0FA72A9F966EE13FFDA4DC /* DNGMetadata.swift */; };
+		09C0DFA316A8D6AE6398094A /* Grade.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B15B63C4C73DFA3B68AF18 /* Grade.swift */; };
+		0D1A400E8E3F06F6C6E11F47 /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2ED6BA166442A11EEC38474 /* Renderer.swift */; };
+		15881CA70E120564C8B58E62 /* ProxyCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A112835A05E43FF116CDECA /* ProxyCache.swift */; };
 		173E53306BE0E97115142B92 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 91D5279FB97CB41E54D4B1D1 /* AppIcon.icon */; };
+		197F4F6E743258EA8354E5B9 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B5365F287A419778AFB8E37 /* AppSettings.swift */; };
+		1AE693B9B77C772EED4D7B0C /* GPUAccumulator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C614E87237772CCDEE897112 /* GPUAccumulator.swift */; };
 		1B6F246BAA67591C4AA71C81 /* LockedShot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD9315953D304ED69E62C5E /* LockedShot.swift */; };
+		1E6FB8B2150DC2996FFE8A28 /* BurstMerge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27DA69C09F0F1F120DFF1515 /* BurstMerge.swift */; };
 		1EB9E44008A37809E33BC71A /* CameraStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B688681F443150DCB18905D /* CameraStore.swift */; };
 		27C59864F4AF0423BB359074 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C533577625762D67FFBEF8E0 /* CameraModel.swift */; };
 		2AB53440C29D30A12CED5BF5 /* CaptureIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4EE5B57AE8BEFC505EF25C /* CaptureIntents.swift */; };
+		2D40F38D14FE93A38281498A /* Shaders in Resources */ = {isa = PBXBuildFile; fileRef = C868D8A431801284A0797231 /* Shaders */; };
 		2FBCB67A1788FE4554EFA8B8 /* PrintLUT.cube in Resources */ = {isa = PBXBuildFile; fileRef = 98D410C59CE8B73D191BFF9F /* PrintLUT.cube */; };
 		319D646CB0A62BF14362CF1F /* Library.swift in Sources */ = {isa = PBXBuildFile; fileRef = A50FA3696D233F15E1B0889A /* Library.swift */; };
 		3678AFF62F5F394B4D4A15B7 /* CrepusculeWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3FA83503DB4FEF5386F1E2BC /* CrepusculeWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		36AF2318210671C9C986579D /* IntentRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53A2AEEBB86A7DFF01052611 /* IntentRouter.swift */; };
-		395E6F95C847ABC1943C1BD7 /* Crepuscule in Frameworks */ = {isa = PBXBuildFile; productRef = E6698588DAF994BD70B9522F /* Crepuscule */; };
+		3E3BF8172969160252D19416 /* DNGMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0FA72A9F966EE13FFDA4DC /* DNGMetadata.swift */; };
 		442DAEFDF5DA95B86DD75832 /* CrepusculeLockedCapture.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 11B18EFD0E4D72BF3A453713 /* CrepusculeLockedCapture.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		446B640E3EB5D26A561D3C2A /* CameraControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 570DD082E0566D981E7E08A0 /* CameraControls.swift */; };
+		44D6E3EB0670B767DAC1AA5F /* Shaders in Resources */ = {isa = PBXBuildFile; fileRef = C868D8A431801284A0797231 /* Shaders */; };
 		48BCB05E58DCB6858B6B0627 /* LockedShot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD9315953D304ED69E62C5E /* LockedShot.swift */; };
+		48F760A630921B4512DBB7C9 /* ExportEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56DABAF37D3508301BFFCAF7 /* ExportEncoder.swift */; };
+		4AFB0A50F2BE7C3AA284C511 /* ManualExposure.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF5BC627CD7225A6E65CA51D /* ManualExposure.swift */; };
+		51C464A3A98048493F773FAD /* ScannedCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78DA032471A5C24DF56FDA42 /* ScannedCode.swift */; };
+		52042D7A7C4E54CD2F611400 /* CameraMatrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A9D7DE3A6E77C358A50EF51 /* CameraMatrix.swift */; };
+		54A3E350B51C0E1D7B940C93 /* WhiteBalance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18AB4130007FCFD55BC63689 /* WhiteBalance.swift */; };
+		5815F57265C1A0FE898F29C3 /* BurstPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6965D5E4A92C8F4AEBA1A19 /* BurstPlan.swift */; };
+		59EDFF12DC04BF786547C9BE /* ExportEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56DABAF37D3508301BFFCAF7 /* ExportEncoder.swift */; };
+		59F7B1C202D9F2FBB89F8B81 /* CameraCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 225AF6EE5BDAF5C37C6F02D9 /* CameraCapture.swift */; };
 		5A56BFBABFCBE77F2E0CB311 /* RenderEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 214AEDE9732E66C3281B0FE5 /* RenderEngine.swift */; };
 		5C59A8E2B1035F3050890B1E /* PrintLUT.cube in Resources */ = {isa = PBXBuildFile; fileRef = 98D410C59CE8B73D191BFF9F /* PrintLUT.cube */; };
-		5C9575DCB9059B0705A695CF /* Crepuscule in Frameworks */ = {isa = PBXBuildFile; productRef = 7C59C8A64225A642870CB3A4 /* Crepuscule */; };
+		623075D59BB788DFDBEE38D8 /* SuperResolutionDNG.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9B28BEAD2B9682DEFB40ADE /* SuperResolutionDNG.swift */; };
 		6259188576D897865B8AEEAA /* LibraryScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E61788DA3FE29FF0859094D /* LibraryScreen.swift */; };
+		62DB889A2A8CA7B42A8D8279 /* DNGRaw.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7BFF31369BA435DD6FA06D3 /* DNGRaw.swift */; };
 		65C1EFD934A57955CA0A3B84 /* CrepusculeControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 426D6277040F0CFD74832446 /* CrepusculeControls.swift */; };
+		65E9D4DB74C0A616841BBAE9 /* SuperResolution.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEEFC3562A55F0EEBE73BD70 /* SuperResolution.swift */; };
 		6BAB2944229DFEEA1AD2D3F6 /* RenderEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 214AEDE9732E66C3281B0FE5 /* RenderEngine.swift */; };
+		6BD24FDB6993DC1F9CAEDEFF /* CameraMatrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A9D7DE3A6E77C358A50EF51 /* CameraMatrix.swift */; };
 		6F9D266342873FD0DFC73F5F /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56951F2F9164E869A46C1079 /* SettingsScreen.swift */; };
 		70AA8BF22418017EC59B462E /* CameraStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B688681F443150DCB18905D /* CameraStore.swift */; };
 		790E0DFAB366BA5A42171C07 /* Viewfinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 091A4E0C4D4A7C2C8EFABD6D /* Viewfinder.swift */; };
+		7B8CE66841A7AFEF699F73C0 /* GPUAccumulator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C614E87237772CCDEE897112 /* GPUAccumulator.swift */; };
 		7EB255C954860CADD00ACAF3 /* Viewfinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 091A4E0C4D4A7C2C8EFABD6D /* Viewfinder.swift */; };
 		8106BB8737286BE73948BECE /* PhotoPager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A4E3233863A5AD85DF65D87 /* PhotoPager.swift */; };
 		891D56FDB0AE680674597793 /* DemoCamera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EF3E5A5CFDD2912CD3B99B7 /* DemoCamera.swift */; };
+		8C8BDA089DECBD2B361C4D00 /* Drive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A08AA6F4D7DD71DEA02669E /* Drive.swift */; };
 		8E252EA657C81355B21209F3 /* ManualControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4BAB29C7826B442684AE0F /* ManualControls.swift */; };
+		A1A4401D843B49B3D5867F04 /* Grade.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B15B63C4C73DFA3B68AF18 /* Grade.swift */; };
+		A1B4E9C5D52C0302CCAFEEE6 /* BurstMerge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27DA69C09F0F1F120DFF1515 /* BurstMerge.swift */; };
 		A67B37C0ED3D432D4383FB52 /* LockedShot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD9315953D304ED69E62C5E /* LockedShot.swift */; };
 		AB6AD065504C43E2749A6A39 /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FED7960963153E604D1A867 /* CameraView.swift */; };
+		ADEC6D626FCAB8E85EC46485 /* Drive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A08AA6F4D7DD71DEA02669E /* Drive.swift */; };
 		AE3EA1C92B6ECD3BE4AC86F4 /* LockedCaptureExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 736082F7692BCB83D648243D /* LockedCaptureExtension.swift */; };
+		AE893AF05B46B0FE1A34DAE6 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B5365F287A419778AFB8E37 /* AppSettings.swift */; };
 		B4BB64C58609B232461441D9 /* SystemCodeAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = D275BFC910AE4CDF8A762C0A /* SystemCodeAction.swift */; };
 		B5C1EEBF6E72802ACBF540AB /* CrepusculeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87923FDA719A6117F8CDBE32 /* CrepusculeApp.swift */; };
+		B9F88B1E82352FC708EB6137 /* ProxyCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A112835A05E43FF116CDECA /* ProxyCache.swift */; };
 		BD3172B0042DA834565C31EF /* NewestPhotoButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9C7263FC663CF3FC27C3B5A /* NewestPhotoButton.swift */; };
 		C09DD161F6D3391205464EEF /* SystemCodeAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = D275BFC910AE4CDF8A762C0A /* SystemCodeAction.swift */; };
+		C0DC59ADF8C091CF3CF5DD36 /* ScannedCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78DA032471A5C24DF56FDA42 /* ScannedCode.swift */; };
+		C2BC94C65B44F369CCC7B83B /* LivePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12E28912F324128F25CA927D /* LivePreview.swift */; };
 		C36609B1D20C07AC0C55A716 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FF92C6EB59A9CAC113B8D73 /* Theme.swift */; };
 		C604D4130D7C2183CA79D860 /* CaptureIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4EE5B57AE8BEFC505EF25C /* CaptureIntents.swift */; };
+		CAD6039786D6F223C09E9DDC /* DNGRaw.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7BFF31369BA435DD6FA06D3 /* DNGRaw.swift */; };
+		CF755C64314A487BCACA4D4B /* SuperResolutionDNG.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9B28BEAD2B9682DEFB40ADE /* SuperResolutionDNG.swift */; };
 		D4425EFF82937751A25A72B8 /* CameraControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 570DD082E0566D981E7E08A0 /* CameraControls.swift */; };
 		D4BB5D5B015F1A15F4D1E1D8 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FF92C6EB59A9CAC113B8D73 /* Theme.swift */; };
+		DACEE77560E93DE8601D6F4D /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2ED6BA166442A11EEC38474 /* Renderer.swift */; };
+		E42244AC79971EB7242E05D3 /* ManualExposure.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF5BC627CD7225A6E65CA51D /* ManualExposure.swift */; };
+		E4C66D289F65EFA09FC89398 /* MotionGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B149C93749A07B67DB1F7B6 /* MotionGate.swift */; };
+		E66B85DF2A4437B05C6FA84F /* WhiteBalance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18AB4130007FCFD55BC63689 /* WhiteBalance.swift */; };
 		EB947997E24C23E0DE7B7018 /* ManualControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4BAB29C7826B442684AE0F /* ManualControls.swift */; };
 		EDEC95E4151E6EB2AB5C5658 /* CaptureIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4EE5B57AE8BEFC505EF25C /* CaptureIntents.swift */; };
+		F12DC28A99C391C2506229A5 /* LivePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12E28912F324128F25CA927D /* LivePreview.swift */; };
 		F2649A55E4C15FD471B0E854 /* LockedImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37400FCD3057839C129A3B0A /* LockedImport.swift */; };
+		F514A33C81FA3E577E258990 /* CameraCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 225AF6EE5BDAF5C37C6F02D9 /* CameraCapture.swift */; };
 		F575337C173923C2C9173581 /* IntroductionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 779887D8FE5206841333436E /* IntroductionView.swift */; };
+		F6309CFDC30C90A0A5ECC138 /* BurstPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6965D5E4A92C8F4AEBA1A19 /* BurstPlan.swift */; };
 		FA18A27C7972AD2B9F3F6330 /* DemoCamera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EF3E5A5CFDD2912CD3B99B7 /* DemoCamera.swift */; };
 		FBC3BC7F00EAF96F133E91E4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3BF3BF895A8F0FC56F89572F /* Assets.xcassets */; };
 		FC671C1BF566F00F0617B40E /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C533577625762D67FFBEF8E0 /* CameraModel.swift */; };
@@ -101,7 +141,13 @@
 		091A4E0C4D4A7C2C8EFABD6D /* Viewfinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Viewfinder.swift; sourceTree = "<group>"; };
 		0A4E3233863A5AD85DF65D87 /* PhotoPager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPager.swift; sourceTree = "<group>"; };
 		11B18EFD0E4D72BF3A453713 /* CrepusculeLockedCapture.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = CrepusculeLockedCapture.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		12E28912F324128F25CA927D /* LivePreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePreview.swift; sourceTree = "<group>"; };
+		18AB4130007FCFD55BC63689 /* WhiteBalance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhiteBalance.swift; sourceTree = "<group>"; };
+		1A08AA6F4D7DD71DEA02669E /* Drive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Drive.swift; sourceTree = "<group>"; };
+		1B149C93749A07B67DB1F7B6 /* MotionGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionGate.swift; sourceTree = "<group>"; };
 		214AEDE9732E66C3281B0FE5 /* RenderEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderEngine.swift; sourceTree = "<group>"; };
+		225AF6EE5BDAF5C37C6F02D9 /* CameraCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraCapture.swift; sourceTree = "<group>"; };
+		27DA69C09F0F1F120DFF1515 /* BurstMerge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BurstMerge.swift; sourceTree = "<group>"; };
 		37400FCD3057839C129A3B0A /* LockedImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockedImport.swift; sourceTree = "<group>"; };
 		3BF3BF895A8F0FC56F89572F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3EF3E5A5CFDD2912CD3B99B7 /* DemoCamera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoCamera.swift; sourceTree = "<group>"; };
@@ -111,13 +157,18 @@
 		4C4BAB29C7826B442684AE0F /* ManualControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualControls.swift; sourceTree = "<group>"; };
 		53A2AEEBB86A7DFF01052611 /* IntentRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentRouter.swift; sourceTree = "<group>"; };
 		56951F2F9164E869A46C1079 /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
+		56DABAF37D3508301BFFCAF7 /* ExportEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportEncoder.swift; sourceTree = "<group>"; };
 		570DD082E0566D981E7E08A0 /* CameraControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraControls.swift; sourceTree = "<group>"; };
 		5B688681F443150DCB18905D /* CameraStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraStore.swift; sourceTree = "<group>"; };
+		61B15B63C4C73DFA3B68AF18 /* Grade.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Grade.swift; sourceTree = "<group>"; };
+		6A112835A05E43FF116CDECA /* ProxyCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyCache.swift; sourceTree = "<group>"; };
+		6B5365F287A419778AFB8E37 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		736082F7692BCB83D648243D /* LockedCaptureExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockedCaptureExtension.swift; sourceTree = "<group>"; };
 		779887D8FE5206841333436E /* IntroductionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroductionView.swift; sourceTree = "<group>"; };
+		78DA032471A5C24DF56FDA42 /* ScannedCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannedCode.swift; sourceTree = "<group>"; };
 		7CD9315953D304ED69E62C5E /* LockedShot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockedShot.swift; sourceTree = "<group>"; };
 		87923FDA719A6117F8CDBE32 /* CrepusculeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrepusculeApp.swift; sourceTree = "<group>"; };
-		8CCA8CA2C19ED8621FEE1A4A /* Coquelicot */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Coquelicot; path = ..; sourceTree = SOURCE_ROOT; };
+		8A9D7DE3A6E77C358A50EF51 /* CameraMatrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraMatrix.swift; sourceTree = "<group>"; };
 		91D5279FB97CB41E54D4B1D1 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		94095504BB3C2D61274CA70C /* CrepusculeApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = CrepusculeApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		98D410C59CE8B73D191BFF9F /* PrintLUT.cube */ = {isa = PBXFileReference; path = PrintLUT.cube; sourceTree = "<group>"; };
@@ -125,30 +176,20 @@
 		9E61788DA3FE29FF0859094D /* LibraryScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryScreen.swift; sourceTree = "<group>"; };
 		9FED7960963153E604D1A867 /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
 		A50FA3696D233F15E1B0889A /* Library.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Library.swift; sourceTree = "<group>"; };
+		A9B28BEAD2B9682DEFB40ADE /* SuperResolutionDNG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperResolutionDNG.swift; sourceTree = "<group>"; };
+		B2ED6BA166442A11EEC38474 /* Renderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renderer.swift; sourceTree = "<group>"; };
 		C533577625762D67FFBEF8E0 /* CameraModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModel.swift; sourceTree = "<group>"; };
 		C5C712F097A45A05A7D1DFC8 /* EditScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditScreen.swift; sourceTree = "<group>"; };
+		C614E87237772CCDEE897112 /* GPUAccumulator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUAccumulator.swift; sourceTree = "<group>"; };
+		C6965D5E4A92C8F4AEBA1A19 /* BurstPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BurstPlan.swift; sourceTree = "<group>"; };
+		C868D8A431801284A0797231 /* Shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Shaders; path = Sources/Engine/Shaders; sourceTree = SOURCE_ROOT; };
 		C9C7263FC663CF3FC27C3B5A /* NewestPhotoButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewestPhotoButton.swift; sourceTree = "<group>"; };
+		CB0FA72A9F966EE13FFDA4DC /* DNGMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DNGMetadata.swift; sourceTree = "<group>"; };
+		CF5BC627CD7225A6E65CA51D /* ManualExposure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualExposure.swift; sourceTree = "<group>"; };
 		D275BFC910AE4CDF8A762C0A /* SystemCodeAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCodeAction.swift; sourceTree = "<group>"; };
+		DEEFC3562A55F0EEBE73BD70 /* SuperResolution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperResolution.swift; sourceTree = "<group>"; };
+		F7BFF31369BA435DD6FA06D3 /* DNGRaw.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DNGRaw.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
-
-/* Begin PBXFrameworksBuildPhase section */
-		15886439E5A6915AE09519F4 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				395E6F95C847ABC1943C1BD7 /* Crepuscule in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		330475DA5346F9BD552A4029 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				5C9575DCB9059B0705A695CF /* Crepuscule in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		5470D693D79358FF38881453 /* Products */ = {
@@ -159,14 +200,6 @@
 				3FA83503DB4FEF5386F1E2BC /* CrepusculeWidgets.appex */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		6FF13818CF92ED555B1AF13E /* Packages */ = {
-			isa = PBXGroup;
-			children = (
-				8CCA8CA2C19ED8621FEE1A4A /* Coquelicot */,
-			);
-			name = Packages;
 			sourceTree = "<group>";
 		};
 		70E7505FA8EC63DAA9DFC5A4 /* Resources */ = {
@@ -191,8 +224,8 @@
 		86216FF39191C2BBA3F02CD7 = {
 			isa = PBXGroup;
 			children = (
+				C868D8A431801284A0797231 /* Shaders */,
 				BFC77C7A8566EE39F2A43E76 /* LockedCapture */,
-				6FF13818CF92ED555B1AF13E /* Packages */,
 				70E7505FA8EC63DAA9DFC5A4 /* Resources */,
 				7D8EB69510781EBE27E0830F /* Shared */,
 				9010C6E7B072DE446A86DDDC /* Sources */,
@@ -224,6 +257,7 @@
 				D275BFC910AE4CDF8A762C0A /* SystemCodeAction.swift */,
 				3FF92C6EB59A9CAC113B8D73 /* Theme.swift */,
 				091A4E0C4D4A7C2C8EFABD6D /* Viewfinder.swift */,
+				D99A098A982FC9C015E5D06A /* Engine */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -234,6 +268,33 @@
 				736082F7692BCB83D648243D /* LockedCaptureExtension.swift */,
 			);
 			path = LockedCapture;
+			sourceTree = "<group>";
+		};
+		D99A098A982FC9C015E5D06A /* Engine */ = {
+			isa = PBXGroup;
+			children = (
+				6B5365F287A419778AFB8E37 /* AppSettings.swift */,
+				27DA69C09F0F1F120DFF1515 /* BurstMerge.swift */,
+				C6965D5E4A92C8F4AEBA1A19 /* BurstPlan.swift */,
+				225AF6EE5BDAF5C37C6F02D9 /* CameraCapture.swift */,
+				8A9D7DE3A6E77C358A50EF51 /* CameraMatrix.swift */,
+				CB0FA72A9F966EE13FFDA4DC /* DNGMetadata.swift */,
+				F7BFF31369BA435DD6FA06D3 /* DNGRaw.swift */,
+				1A08AA6F4D7DD71DEA02669E /* Drive.swift */,
+				56DABAF37D3508301BFFCAF7 /* ExportEncoder.swift */,
+				C614E87237772CCDEE897112 /* GPUAccumulator.swift */,
+				61B15B63C4C73DFA3B68AF18 /* Grade.swift */,
+				12E28912F324128F25CA927D /* LivePreview.swift */,
+				CF5BC627CD7225A6E65CA51D /* ManualExposure.swift */,
+				1B149C93749A07B67DB1F7B6 /* MotionGate.swift */,
+				6A112835A05E43FF116CDECA /* ProxyCache.swift */,
+				B2ED6BA166442A11EEC38474 /* Renderer.swift */,
+				78DA032471A5C24DF56FDA42 /* ScannedCode.swift */,
+				DEEFC3562A55F0EEBE73BD70 /* SuperResolution.swift */,
+				A9B28BEAD2B9682DEFB40ADE /* SuperResolutionDNG.swift */,
+				18AB4130007FCFD55BC63689 /* WhiteBalance.swift */,
+			);
+			path = Engine;
 			sourceTree = "<group>";
 		};
 		F08C4F84BA41C44668F05283 /* WidgetExtension */ = {
@@ -253,7 +314,6 @@
 			buildPhases = (
 				6EC9896F3283136423A690BD /* Sources */,
 				80D9AF342A7CE2C620607BF5 /* Resources */,
-				15886439E5A6915AE09519F4 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -261,7 +321,6 @@
 			);
 			name = CrepusculeLockedCapture;
 			packageProductDependencies = (
-				E6698588DAF994BD70B9522F /* Crepuscule */,
 			);
 			productName = CrepusculeLockedCapture;
 			productReference = 11B18EFD0E4D72BF3A453713 /* CrepusculeLockedCapture.appex */;
@@ -273,7 +332,6 @@
 			buildPhases = (
 				865A76E71629D52CB3A35A7E /* Sources */,
 				69EF6933FCFA3890C7BBC7DB /* Resources */,
-				330475DA5346F9BD552A4029 /* Frameworks */,
 				06BAB29730F16DA68D4F3645 /* Embed Foundation Extensions */,
 				C55D159574371B5AA7688D43 /* Embed ExtensionKit Extensions */,
 			);
@@ -285,7 +343,6 @@
 			);
 			name = CrepusculeApp;
 			packageProductDependencies = (
-				7C59C8A64225A642870CB3A4 /* Crepuscule */,
 			);
 			productName = CrepusculeApp;
 			productReference = 94095504BB3C2D61274CA70C /* CrepusculeApp.app */;
@@ -340,9 +397,6 @@
 			);
 			mainGroup = 86216FF39191C2BBA3F02CD7;
 			minimizedProjectReferenceProxies = 1;
-			packageReferences = (
-				F357C1F1BE050AAF037F409A /* XCLocalSwiftPackageReference ".." */,
-			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5470D693D79358FF38881453 /* Products */;
 			projectDirPath = "";
@@ -363,6 +417,7 @@
 				173E53306BE0E97115142B92 /* AppIcon.icon in Resources */,
 				FBC3BC7F00EAF96F133E91E4 /* Assets.xcassets in Resources */,
 				5C59A8E2B1035F3050890B1E /* PrintLUT.cube in Resources */,
+				2D40F38D14FE93A38281498A /* Shaders in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -371,6 +426,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2FBCB67A1788FE4554EFA8B8 /* PrintLUT.cube in Resources */,
+				44D6E3EB0670B767DAC1AA5F /* Shaders in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -381,19 +437,39 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				197F4F6E743258EA8354E5B9 /* AppSettings.swift in Sources */,
+				A1B4E9C5D52C0302CCAFEEE6 /* BurstMerge.swift in Sources */,
+				5815F57265C1A0FE898F29C3 /* BurstPlan.swift in Sources */,
+				F514A33C81FA3E577E258990 /* CameraCapture.swift in Sources */,
 				D4425EFF82937751A25A72B8 /* CameraControls.swift in Sources */,
+				6BD24FDB6993DC1F9CAEDEFF /* CameraMatrix.swift in Sources */,
 				FC671C1BF566F00F0617B40E /* CameraModel.swift in Sources */,
 				70AA8BF22418017EC59B462E /* CameraStore.swift in Sources */,
 				06BC0B4DBB2355DC69187485 /* CameraView.swift in Sources */,
 				2AB53440C29D30A12CED5BF5 /* CaptureIntents.swift in Sources */,
+				08EDD16D818C9C72AD2FE00D /* DNGMetadata.swift in Sources */,
+				62DB889A2A8CA7B42A8D8279 /* DNGRaw.swift in Sources */,
 				891D56FDB0AE680674597793 /* DemoCamera.swift in Sources */,
+				8C8BDA089DECBD2B361C4D00 /* Drive.swift in Sources */,
+				59EDFF12DC04BF786547C9BE /* ExportEncoder.swift in Sources */,
+				1AE693B9B77C772EED4D7B0C /* GPUAccumulator.swift in Sources */,
+				09C0DFA316A8D6AE6398094A /* Grade.swift in Sources */,
+				C2BC94C65B44F369CCC7B83B /* LivePreview.swift in Sources */,
 				AE3EA1C92B6ECD3BE4AC86F4 /* LockedCaptureExtension.swift in Sources */,
 				A67B37C0ED3D432D4383FB52 /* LockedShot.swift in Sources */,
 				EB947997E24C23E0DE7B7018 /* ManualControls.swift in Sources */,
+				E42244AC79971EB7242E05D3 /* ManualExposure.swift in Sources */,
+				067C12EB10E079F597009866 /* MotionGate.swift in Sources */,
+				B9F88B1E82352FC708EB6137 /* ProxyCache.swift in Sources */,
 				6BAB2944229DFEEA1AD2D3F6 /* RenderEngine.swift in Sources */,
+				0D1A400E8E3F06F6C6E11F47 /* Renderer.swift in Sources */,
+				51C464A3A98048493F773FAD /* ScannedCode.swift in Sources */,
+				65E9D4DB74C0A616841BBAE9 /* SuperResolution.swift in Sources */,
+				CF755C64314A487BCACA4D4B /* SuperResolutionDNG.swift in Sources */,
 				C09DD161F6D3391205464EEF /* SystemCodeAction.swift in Sources */,
 				C36609B1D20C07AC0C55A716 /* Theme.swift in Sources */,
 				7EB255C954860CADD00ACAF3 /* Viewfinder.swift in Sources */,
+				54A3E350B51C0E1D7B940C93 /* WhiteBalance.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -401,28 +477,48 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AE893AF05B46B0FE1A34DAE6 /* AppSettings.swift in Sources */,
+				1E6FB8B2150DC2996FFE8A28 /* BurstMerge.swift in Sources */,
+				F6309CFDC30C90A0A5ECC138 /* BurstPlan.swift in Sources */,
+				59F7B1C202D9F2FBB89F8B81 /* CameraCapture.swift in Sources */,
 				446B640E3EB5D26A561D3C2A /* CameraControls.swift in Sources */,
+				52042D7A7C4E54CD2F611400 /* CameraMatrix.swift in Sources */,
 				27C59864F4AF0423BB359074 /* CameraModel.swift in Sources */,
 				1EB9E44008A37809E33BC71A /* CameraStore.swift in Sources */,
 				AB6AD065504C43E2749A6A39 /* CameraView.swift in Sources */,
 				EDEC95E4151E6EB2AB5C5658 /* CaptureIntents.swift in Sources */,
 				B5C1EEBF6E72802ACBF540AB /* CrepusculeApp.swift in Sources */,
+				3E3BF8172969160252D19416 /* DNGMetadata.swift in Sources */,
+				CAD6039786D6F223C09E9DDC /* DNGRaw.swift in Sources */,
 				FA18A27C7972AD2B9F3F6330 /* DemoCamera.swift in Sources */,
+				ADEC6D626FCAB8E85EC46485 /* Drive.swift in Sources */,
 				05449163B98B4E8E9F7EB87A /* EditScreen.swift in Sources */,
+				48F760A630921B4512DBB7C9 /* ExportEncoder.swift in Sources */,
+				7B8CE66841A7AFEF699F73C0 /* GPUAccumulator.swift in Sources */,
+				A1A4401D843B49B3D5867F04 /* Grade.swift in Sources */,
 				36AF2318210671C9C986579D /* IntentRouter.swift in Sources */,
 				F575337C173923C2C9173581 /* IntroductionView.swift in Sources */,
 				319D646CB0A62BF14362CF1F /* Library.swift in Sources */,
 				6259188576D897865B8AEEAA /* LibraryScreen.swift in Sources */,
+				F12DC28A99C391C2506229A5 /* LivePreview.swift in Sources */,
 				F2649A55E4C15FD471B0E854 /* LockedImport.swift in Sources */,
 				48BCB05E58DCB6858B6B0627 /* LockedShot.swift in Sources */,
 				8E252EA657C81355B21209F3 /* ManualControls.swift in Sources */,
+				4AFB0A50F2BE7C3AA284C511 /* ManualExposure.swift in Sources */,
+				E4C66D289F65EFA09FC89398 /* MotionGate.swift in Sources */,
 				BD3172B0042DA834565C31EF /* NewestPhotoButton.swift in Sources */,
 				8106BB8737286BE73948BECE /* PhotoPager.swift in Sources */,
+				15881CA70E120564C8B58E62 /* ProxyCache.swift in Sources */,
 				5A56BFBABFCBE77F2E0CB311 /* RenderEngine.swift in Sources */,
+				DACEE77560E93DE8601D6F4D /* Renderer.swift in Sources */,
+				C0DC59ADF8C091CF3CF5DD36 /* ScannedCode.swift in Sources */,
 				6F9D266342873FD0DFC73F5F /* SettingsScreen.swift in Sources */,
+				0360FF17CF295C5CBDA11FDC /* SuperResolution.swift in Sources */,
+				623075D59BB788DFDBEE38D8 /* SuperResolutionDNG.swift in Sources */,
 				B4BB64C58609B232461441D9 /* SystemCodeAction.swift in Sources */,
 				D4BB5D5B015F1A15F4D1E1D8 /* Theme.swift in Sources */,
 				790E0DFAB366BA5A42171C07 /* Viewfinder.swift in Sources */,
+				E66B85DF2A4437B05C6FA84F /* WhiteBalance.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -608,6 +704,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = ch.cclerc.crepuscule.lockedcapture;
 				SDKROOT = iphoneos;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -637,6 +734,7 @@
 				PRODUCT_NAME = Crepuscule;
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) CREPUSCULE_APP";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -682,6 +780,7 @@
 				PRODUCT_NAME = Crepuscule;
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) CREPUSCULE_APP";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -697,6 +796,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = ch.cclerc.crepuscule.lockedcapture;
 				SDKROOT = iphoneos;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -741,24 +841,6 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCLocalSwiftPackageReference section */
-		F357C1F1BE050AAF037F409A /* XCLocalSwiftPackageReference ".." */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ..;
-		};
-/* End XCLocalSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		7C59C8A64225A642870CB3A4 /* Crepuscule */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = Crepuscule;
-		};
-		E6698588DAF994BD70B9522F /* Crepuscule */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = Crepuscule;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 9534ADF8161C9E2A5F8EECC7 /* Project object */;
 }

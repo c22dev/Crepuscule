@@ -11,21 +11,21 @@ settings:
     CODE_SIGN_STYLE: Automatic
     SWIFT_VERSION: "5.0"
     TARGETED_DEVICE_FAMILY: "1"
-packages:
-  Crepuscule:
-    path: ..
 targets:
   CrepusculeApp:
     type: application
     platform: iOS
     sources:
       - path: Sources
+        excludes: ["Engine/Shaders"]
+      # copied as-is, the engine compiles them at runtime with its own options
+      - path: Sources/Engine/Shaders
+        type: folder
+        buildPhase: resources
       - path: Shared
       - path: Resources
         buildPhase: resources
     dependencies:
-      - package: Crepuscule
-        product: Crepuscule
       - target: CrepusculeWidgets
       - target: CrepusculeLockedCapture
     info:
@@ -36,6 +36,7 @@ targets:
       base:
         PRODUCT_NAME: Crepuscule
         PRODUCT_MODULE_NAME: CrepusculeApp
+        SWIFT_OPTIMIZATION_LEVEL: -O
         PRODUCT_BUNDLE_IDENTIFIER: ch.cclerc.crepuscule
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) CREPUSCULE_APP
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -84,9 +85,12 @@ targets:
       - path: Sources/DemoCamera.swift
       - path: Resources/PrintLUT.cube
         buildPhase: resources
-    dependencies:
-      - package: Crepuscule
-        product: Crepuscule
+      # the image pipeline
+      - path: Sources/Engine
+        excludes: ["Shaders"]
+      - path: Sources/Engine/Shaders
+        type: folder
+        buildPhase: resources
     info:
       path: Info/LockedCapture.plist
       properties:
@@ -99,4 +103,5 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ch.cclerc.crepuscule.lockedcapture
+        SWIFT_OPTIMIZATION_LEVEL: -O
         GENERATE_INFOPLIST_FILE: YES

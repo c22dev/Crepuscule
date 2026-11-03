@@ -2,7 +2,6 @@
 // Constantin Clerc (c22dev) - 0.1
 #if targetEnvironment(simulator)
 import AVFoundation
-import Crepuscule
 import CoreImage
 import UIKit
 

@@ -1,6 +1,5 @@
 // Crepuscule - EditScreen.swift
 // Constantin Clerc (c22dev) - 0.1
-import Crepuscule
 import SwiftUI
 
 private enum Tool: String, CaseIterable, Identifiable, Hashable {

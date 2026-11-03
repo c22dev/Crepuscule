@@ -1,6 +1,5 @@
 // Crepuscule - CameraStore.swift
 // Constantin Clerc (c22dev) - 0.1
-import Crepuscule
 import Foundation
 
 @MainActor

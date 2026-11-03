@@ -16,7 +16,7 @@ final class GPUAccumulator: @unchecked Sendable {
 
     private init() throws {
         guard let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue() else { throw PipelineError.noDevice }
-        guard let url = Bundle.module.url(forResource: "Accumulate", withExtension: "metal") else {
+        guard let url = Bundle.main.url(forResource: "Accumulate", withExtension: "metal", subdirectory: "Shaders") else {
             throw PipelineError.shader("Accumulate.metal missing from bundle")
         }
         let options = MTLCompileOptions()

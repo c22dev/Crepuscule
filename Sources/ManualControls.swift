@@ -1,6 +1,5 @@
 // Crepuscule - ManualControls.swift
 // Constantin Clerc (c22dev) - 0.1
-import Crepuscule
 import SwiftUI
 
 enum ManualDial: String, CaseIterable, Identifiable {

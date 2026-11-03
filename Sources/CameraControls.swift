@@ -1,7 +1,6 @@
 // Crepuscule - CameraControls.swift
 // Constantin Clerc (c22dev) - 0.1
 import AVFoundation
-import Crepuscule
 
 final class CameraControls: NSObject, AVCaptureSessionControlsDelegate, @unchecked Sendable {
     struct State: Equatable {

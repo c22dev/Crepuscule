@@ -1,6 +1,5 @@
 // Crepuscule - LibraryScreen.swift
 // Constantin Clerc (c22dev) - 0.1
-import Crepuscule
 import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers

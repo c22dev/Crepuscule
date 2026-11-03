@@ -1,6 +1,5 @@
 // Crepuscule - CrepusculeApp.swift
 // Constantin Clerc (c22dev) - 0.1
-import Crepuscule
 import LockedCameraCapture
 import SwiftUI
 import UIKit

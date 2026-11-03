@@ -1,7 +1,6 @@
 // Crepuscule - IntentRouter.swift
 // Constantin Clerc (c22dev) - 0.1
 import AppIntents
-import Crepuscule
 import Observation
 
 enum IntentAction: Equatable {

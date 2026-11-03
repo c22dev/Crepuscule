@@ -1,6 +1,5 @@
 // Crepuscule - SettingsScreen.swift
 // Constantin Clerc (c22dev) - 0.1
-import Crepuscule
 import SwiftUI
 
 struct SettingsScreen: View {

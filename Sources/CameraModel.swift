@@ -1,7 +1,6 @@
 // Crepuscule - CameraModel.swift
 // Constantin Clerc (c22dev) - 0.1
 import AVFoundation
-import Crepuscule
 import CoreImage
 import Observation
 import SwiftUI

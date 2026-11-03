@@ -1,7 +1,6 @@
 // Crepuscule - CameraView.swift
 // Constantin Clerc (c22dev) - 0.1
 import AVKit
-import Crepuscule
 import SwiftUI
 
 struct CameraView: View {

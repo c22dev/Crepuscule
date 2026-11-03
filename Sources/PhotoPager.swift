@@ -1,7 +1,6 @@
 // Crepuscule - PhotoPager.swift
 // Constantin Clerc (c22dev) - 0.1
 import AVFoundation
-import Crepuscule
 import SwiftUI
 
 struct PhotoPager: View {
