@@ -300,14 +300,38 @@ private struct ViewfinderPane: View {
                     .transition(.opacity)
                 }
                 if let code = model.scannedCode, model.notice == nil {
+                    let system = model.codeAction
                     VStack {
                         Spacer()
                         Button {
-                            if let url = URL(string: code), url.scheme != nil { UIApplication.shared.open(url) } else { UIPasteboard.general.string = code }
+                            Haptics.tick()
+                            if let system { system.perform() } else { performFallback(code) }
                         } label: {
-                            Label(code, systemImage: "qrcode").lineLimit(1).font(.footnote.weight(.medium)).padding(.horizontal, 14).padding(.vertical, 10)
+                            HStack(spacing: 10) {
+                                Image(systemName: system?.systemImage ?? code.systemImage).font(.body.weight(.medium)).frame(width: 22)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(system?.title ?? code.title).font(.footnote.weight(.semibold)).lineLimit(1)
+                                    if let sub = system?.subtitle ?? code.subtitle {
+                                        Text(sub).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                                    }
+                                }
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.horizontal, 14).padding(.vertical, 9)
+                            .contentShape(.rect)
                         }
                         .buttonStyle(.plain)
+                        .contextMenu {
+                            if let system, system.hasMoreOptions {
+                                Button("More Options", systemImage: "ellipsis.circle") { system.showOptions() }
+                            }
+                            if case .wifi(_, let password?, _, _) = code.kind {
+                                Button("Copy Password", systemImage: "key") { UIPasteboard.general.string = password }
+                            }
+                            Button("Copy", systemImage: "doc.on.doc") { UIPasteboard.general.string = code.raw }
+                            ShareLink(item: code.raw)
+                        }
+                        .animation(Motion.snappy, value: system?.title)
                         .glassEffect(in: .rect(cornerRadius: Radius.chip))
                         .padding(.bottom, 56).padding(.horizontal, 24)
                     }
@@ -360,6 +384,22 @@ private struct ViewfinderPane: View {
             })
             .position(x: geo.size.width / 2, y: box.height / 2)
         }
+    }
+
+    private func performFallback(_ code: ScannedCode) {
+        if let url = code.actionURL {
+            UIApplication.shared.open(url) { ok in
+                if !ok { UIPasteboard.general.string = code.raw; model.notice = "Copied to clipboard" }
+            }
+            return
+        }
+        if case .wifi(let ssid, let password?, _, _) = code.kind {
+            UIPasteboard.general.string = password
+            model.notice = "Password for “\(ssid)” copied"
+            return
+        }
+        UIPasteboard.general.string = code.raw
+        model.notice = "Copied to clipboard"
     }
 
     private func tap(_ p: CGPoint, _ box: CGSize) {

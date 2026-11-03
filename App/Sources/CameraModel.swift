@@ -230,7 +230,8 @@ final class CameraModel {
     var scanCodes = UserDefaults.standard.object(forKey: "scanCodesInViewfinder") as? Bool ?? true {
         didSet { UserDefaults.standard.set(scanCodes, forKey: "scanCodesInViewfinder"); syncScanning() }
     }
-    var scannedCode: String?
+    var scannedCode: ScannedCode?
+    var codeAction: SystemCodeAction?
     private var codeExpiry: Task<Void, Never>?
 
     let pump = FramePump()
@@ -384,15 +385,21 @@ final class CameraModel {
         backend.setCodeScanning(scanCodes) { [weak self] code in
             Task { @MainActor in
                 guard let self else { return }
-                if self.scannedCode != code { self.scannedCode = code }
+                if self.scannedCode?.raw != code {
+                    self.scannedCode = ScannedCode(code)
+                    self.codeAction = nil
+                    SystemCodeAction.resolve(code) { [weak self] action in
+                        if self?.scannedCode?.raw == code { self?.codeAction = action }
+                    }
+                }
                 self.codeExpiry?.cancel()
                 self.codeExpiry = Task { [weak self] in
                     try? await Task.sleep(nanoseconds: 3_000_000_000)
-                    if !Task.isCancelled { self?.scannedCode = nil }
+                    if !Task.isCancelled { self?.scannedCode = nil; self?.codeAction = nil }
                 }
             }
         }
-        if !scanCodes { scannedCode = nil }
+        if !scanCodes { scannedCode = nil; codeAction = nil }
     }
 
     func lockExposure(at p: CGPoint) {
