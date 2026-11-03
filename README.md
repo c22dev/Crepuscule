@@ -1,7 +1,8 @@
-<img src="docs/icon.png" width="128" alt="Crepuscule icon">
-
-# Crepuscule
-A Film RAW camera that lives on your iPhone
+<div align="center">
+  <img src="docs/icon.png" width="128" alt="Crepuscule icon">
+  <h1>Crepuscule</h1>
+  <p>A Film RAW camera that lives on your iPhone</p>
+</div>
 
 Every press of the shutter is a burst of RAW frames, merged into one cleaner RAW, then developed like film : LogC, a print-film curve, halation and grain. the RAW always stays untouched next to it
 
