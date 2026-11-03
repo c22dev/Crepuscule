@@ -4,6 +4,7 @@ import AVFoundation
 import Crepuscule
 import CoreImage
 import Observation
+import SwiftUI
 import os
 import UIKit
 
@@ -12,7 +13,7 @@ enum Startup {
 }
 
 protocol CameraBackend: AnyObject {
-    var onFrame: ((CVPixelBuffer) -> Void)? { get set }
+    var onFrame: ((CVPixelBuffer, String?) -> Void)? { get set }
     var onStats: ((FrameStats) -> Void)? { get set }
     var formatLabel: String { get }
     var previewAngle: CGFloat { get }
@@ -48,7 +49,7 @@ final class DeviceCameraBackend: CameraBackend {
         capture = CameraCapture(directory: dir)
     }
 
-    var onFrame: ((CVPixelBuffer) -> Void)? {
+    var onFrame: ((CVPixelBuffer, String?) -> Void)? {
         get { capture.onFrame }
         set { capture.onFrame = newValue }
     }
@@ -147,7 +148,11 @@ final class FramePump: @unchecked Sendable {
     private var grader: LiveGrader?
     private var grade = Grade()
     private var look = true
-    private var crop = 1.0
+    // crop from each frame's own camera or a switch shows the new cam with the old crop
+    private var targetFocal = 0.0
+    private var targetDevice: String?
+    private var natives: [String: Double] = [:]
+    private var last: (buffer: CVPixelBuffer, device: String?, time: Double)?
     var drawsPlain: Bool {
         get { lock.withLock { plainFeed } }
         set { lock.withLock { plainFeed = newValue } }
@@ -159,7 +164,21 @@ final class FramePump: @unchecked Sendable {
     private var ambient = AmbientGrid()
 
     func configure(grader: LiveGrader?) { lock.withLock { self.grader = grader } }
-    func set(cropFactor: Double) { lock.withLock { crop = cropFactor } }
+    func set(natives: [String: Double]) { lock.withLock { self.natives = natives } }
+
+    func set(focal: Double, device: String) {
+        let stalled = lock.withLock { () -> (CVPixelBuffer, String?)? in
+            targetFocal = focal; targetDevice = device
+            guard let last, ProcessInfo.processInfo.systemUptime - last.time > 0.08 else { return nil }
+            return (last.buffer, last.device)
+        }
+        if let stalled { draw(stalled.0, from: stalled.1, remember: false) }
+    }
+
+    private func crop(for device: String?) -> Double {
+        guard targetFocal > 0, let native = natives[device ?? targetDevice ?? ""] ?? targetDevice.flatMap({ natives[$0] }), native > 0 else { return 1 }
+        return max(targetFocal / native, 1)
+    }
     func set(grade: Grade, look: Bool) { lock.withLock { self.grade = grade; self.look = look } }
 
     private static func centre(_ image: CIImage, _ factor: Double) -> CIImage {
@@ -168,7 +187,9 @@ final class FramePump: @unchecked Sendable {
         return image.cropped(to: e.insetBy(dx: e.width * (1 - 1 / f) / 2, dy: e.height * (1 - 1 / f) / 2))
     }
 
-    func push(_ buffer: CVPixelBuffer) {
+    func push(_ buffer: CVPixelBuffer, from device: String?) { draw(buffer, from: device, remember: true) }
+
+    private func draw(_ buffer: CVPixelBuffer, from device: String?, remember: Bool) {
         let claimed = lock.withLock { () -> Bool in
             if busy { return false }
             busy = true
@@ -177,8 +198,11 @@ final class FramePump: @unchecked Sendable {
         guard claimed else { return }
         queue.async { [self] in
             defer { lock.withLock { busy = false } }
-            if let ambientDisplay, let image = ambient.update(buffer) { ambientDisplay.show(image) }
-            let (g, gradeNow, lookNow, cropNow) = lock.withLock { (grader, grade, look, crop) }
+            if remember, let ambientDisplay, let image = ambient.update(buffer) { ambientDisplay.show(image) }
+            let (g, gradeNow, lookNow, cropNow) = lock.withLock { () -> (LiveGrader?, Grade, Bool, Double) in
+                if remember { last = (buffer, device, ProcessInfo.processInfo.systemUptime) }
+                return (grader, grade, look, crop(for: device))
+            }
             if lookNow, let g, let t = try? g.render(buffer, grade: gradeNow),
                let image = CIImage(mtlTexture: t, options: [.colorSpace: NSNull()]) {
                 display?.show(Self.centre(image, cropNow))
@@ -197,6 +221,7 @@ final class CameraModel {
     private(set) var lenses: [CameraLens] = []
     private(set) var active: CameraLens?
     private(set) var switching = false
+    private var swapping = false
     private(set) var flips = 0
     private(set) var reading = ExposureReading()
     private(set) var stats = FrameStats()
@@ -229,15 +254,22 @@ final class CameraModel {
         didSet { UserDefaults.standard.set(muteShutter, forKey: "muteShutterSound"); backend.setMuteShutter(muteShutter) }
     }
     var nightBursts = UserDefaults.standard.object(forKey: "nightBursts") as? Bool ?? true {
-        didSet { UserDefaults.standard.set(nightBursts, forKey: "nightBursts"); backend.setNightBursts(nightBursts); publishLockedContext() }
+        didSet { UserDefaults.standard.set(nightBursts, forKey: "nightBursts"); syncNight(); publishLockedContext() }
     }
-    var nightActive: Bool {
+    // low light right now, night mode would kick in
+    var nightAvailable: Bool {
         nightBursts && !manual.exposureManual && library.burstMerge && formatLabel != "PRORAW" && NightBurst.applies(iso: reading.iso, duration: reading.duration)
     }
+    // turned off from the viewfinder for this scene, comes back once the light does
+    var nightDeclined = false {
+        didSet { if nightDeclined != oldValue { syncNight() } }
+    }
+    var nightActive: Bool { nightAvailable && !nightDeclined }
+    func toggleNight() { nightDeclined.toggle(); Haptics.tick() }
+    private func syncNight() { backend.setNightBursts(nightBursts && !nightDeclined) }
     var scanCodes = UserDefaults.standard.object(forKey: "scanCodesInViewfinder") as? Bool ?? true {
         didSet { UserDefaults.standard.set(scanCodes, forKey: "scanCodesInViewfinder"); syncScanning() }
     }
-    // values reset to auto each launch
     var manualOpen = false
     var manualDial = ManualDial.shutter
     private(set) var manual = ManualSettings()
@@ -283,14 +315,19 @@ final class CameraModel {
     }
     private var zoomStart: Double?
     private var zoomToWide = false
-    private var lastSnap: Int?
     private(set) var zoomReadout: Int?
     private var readoutHide: Task<Void, Never>?
 
+    private var zoomStops: [Double] {
+        guard let base = zoomBase else { return [] }
+        return ([base.focalLength, 35, 50, 75, 100, 135, 200, Int(CameraLens.maxZoomFocal)] + backLenses.filter { $0.focalLength >= base.focalLength }.map(\.focalLength)).map(Double.init)
+    }
+
     func beginZoom() {
         cancelZoomSettle()
-        guard active?.facing == .back else { zoomStart = nil; return }
-        zoomStart = Double(active?.focalLength ?? 26)
+        guard let active, active.facing == .back else { zoomStart = nil; return }
+        zoomStart = focal(of: active)
+        lastZoomFocal = zoomStart
         zoomToWide = false
         readoutHide?.cancel()
     }
@@ -306,34 +343,20 @@ final class CameraModel {
         }
         zoomToWide = false
         f = min(max(f, Double(base.focalLength)), CameraLens.maxZoomFocal)
-        let stops = [base.focalLength, 35, 50, 75, 100, 135, 200, Int(CameraLens.maxZoomFocal)] + backLenses.filter { $0.focalLength >= base.focalLength }.map(\.focalLength)
-        let snap = stops.first { abs(Double($0) - f) < 1.5 }
-        if let snap { f = Double(snap) }
-        if snap != lastSnap, snap != nil { Haptics.tick() }
-        lastSnap = snap
-        zoomReadout = Int(f.rounded())
+        if let prev = lastZoomFocal, prev != f, zoomStops.contains(where: { min(prev, f) < $0 && $0 <= max(prev, f) }) { Haptics.tick() }
         lastZoomFocal = f
-        applyZoom(f, settle: false)
+        zoomReadout = Int(applyZoom(f).rounded())
     }
 
     func setZoomFocal(_ focal: Double) {
         guard let base = zoomBase, !firing else { return }
         let wide = backLenses.filter { $0.cropFactor == 1 && $0.focalLength < base.focalLength }.max { $0.focalLength < $1.focalLength }
         if let wide, focal < Double(base.focalLength) * 0.85 {
-            settleTask?.cancel()
+            pendingZoom = nil
             if active != wide { select(wide, quiet: true) }
             return
         }
-        let f = min(max(focal, Double(base.focalLength)), CameraLens.maxZoomFocal)
-        applyZoom(f, settle: false)
-        // camera control has no end event, settle once it stops moving
-        settleTask?.cancel()
-        settleTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 450_000_000)
-            guard !Task.isCancelled, let self else { return }
-            settleTask = nil
-            if active?.facing == .back { applyZoom(f, settle: true) }
-        }
+        applyZoom(min(max(focal, Double(base.focalLength)), CameraLens.maxZoomFocal))
     }
 
     func endZoom() {
@@ -342,45 +365,74 @@ final class CameraModel {
             select(wide)
         } else if zoomStart != nil, let f = lastZoomFocal {
             zoomStart = nil
-            applyZoom(f, settle: true)
+            let snap = zoomStops.filter { abs($0 - f) < 1.5 }.min { abs($0 - f) < abs($1 - f) }
+            if active?.facing == .back { zoomReadout = Int(applyZoom(snap ?? f, animated: snap != nil).rounded()) }
         }
-        zoomStart = nil; zoomToWide = false; lastSnap = nil; lastZoomFocal = nil
+        zoomStart = nil; zoomToWide = false; lastZoomFocal = nil
+        syncControls()
         readoutHide = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 700_000_000)
             if !Task.isCancelled { self?.zoomReadout = nil }
         }
     }
 
-    private func cancelZoomSettle() { settleTask?.cancel(); settleTask = nil; pendingZoom = nil }
+    private func cancelZoomSettle() { pendingZoom = nil }
 
     private var lastZoomFocal: Double?
-    private var pendingZoom: (focal: Double, settle: Bool)?
-    private var settleTask: Task<Void, Never>?
+    private var pendingZoom: Double?
 
-    // main + teles, shortest first
     private var zoomSources: [CameraLens] {
         guard let base = zoomBase else { return [] }
         return backLenses.filter { $0.cropFactor == 1 && $0.focalLength >= base.focalLength }.sorted { $0.focalLength < $1.focalLength }
     }
 
-    // longest camera whose native focal is still <= f, so it gets there by cropping (a longer tele can't zoom out)
     private func zoomSource(for f: Double) -> CameraLens? {
         zoomSources.last { Double($0.focalLength) <= f + 0.5 } ?? zoomBase
     }
 
-    private func applyZoom(_ f: Double, settle: Bool) {
-        guard !firing, let best = zoomSource(for: f) else { return }
-        if switching { pendingZoom = (f, settle); return }
-        var source = best
-        // mid gesture keep cropping the current camera if it can reach f, switching devices stalls the preview
-        if !settle, let a = active, a.facing == .back,
-           let current = zoomSources.first(where: { $0.deviceID == a.deviceID }), Double(current.focalLength) <= f + 0.5 {
+    private func focal(of lens: CameraLens) -> Double {
+        guard let native = lenses.first(where: { $0.deviceID == lens.deviceID && $0.cropFactor == 1 }) else { return Double(lens.focalLength) }
+        return Double(native.focalLength) * lens.cropFactor
+    }
+
+    private func zoomLens(on source: CameraLens, focal f: Double) -> CameraLens {
+        let f = max(f, Double(source.focalLength))
+        return backLenses.first { $0.deviceID == source.deviceID && abs(focal(of: $0) - f) < 0.01 } ?? source.crop(focal: f)
+    }
+
+    private func show(_ lens: CameraLens, animated: Bool) {
+        if animated { active = lens; return }
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t) { active = lens }
+    }
+
+    // tele holds at its native focal in between so hovering doesnt flip cameras
+    private static let zoomDownHysteresis = 0.95
+
+    @discardableResult
+    private func applyZoom(_ f: Double, animated: Bool = false) -> Double {
+        guard !firing, var source = zoomSource(for: f) else { return f }
+        var f = f
+        if let a = active, a.facing == .back,
+           let current = zoomSources.first(where: { $0.deviceID == a.deviceID }),
+           current.focalLength > source.focalLength, f >= Double(current.focalLength) * Self.zoomDownHysteresis {
             source = current
+            f = Double(current.focalLength)
         }
-        let target = Int(f.rounded())
-        let lens = backLenses.first { $0.deviceID == source.deviceID && $0.focalLength == target } ?? source.crop(focal: f)
-        guard lens.focalLength != active?.focalLength || lens.deviceID != active?.deviceID else { return }
-        select(lens, quiet: true)
+        if swapping {
+            pendingZoom = f
+            pump.set(focal: f, device: source.deviceID)
+            if let a = active, a.facing == .back, let old = zoomSources.first(where: { $0.deviceID == a.deviceID }) {
+                let lens = zoomLens(on: old, focal: f)
+                if abs(lens.cropFactor - a.cropFactor) > 0.0005 { show(lens, animated: false) }
+            }
+            return max(f, Double(active.flatMap { a in zoomSources.first { $0.deviceID == a.deviceID } }?.focalLength ?? 0))
+        }
+        let lens = zoomLens(on: source, focal: f)
+        if let a = active, a.deviceID == lens.deviceID, abs(lens.cropFactor - a.cropFactor) < 0.0005 { return f }
+        select(lens, quiet: true, animated: animated)
+        return f
     }
 
     var frontLens: CameraLens? { lenses.first { $0.facing == .front } }
@@ -392,11 +444,13 @@ final class CameraModel {
             let began = ContinuousClock.now
             let pump = pump
             let firstFrame = OSAllocatedUnfairLock(initialState: false)
-            backend.onFrame = { buffer in
+            let frameDevice = frameDevice
+            backend.onFrame = { buffer, device in
+                frameDevice.withLock { $0 = device }
                 if !firstFrame.withLock({ seen in defer { seen = true }; return seen }) {
                     Startup.log.notice("first frame \(began.duration(to: .now), privacy: .public)")
                 }
-                pump.push(buffer)
+                pump.push(buffer, from: device)
             }
             pump.drawsPlain = backend.captureSession == nil
             backend.onStats = { [weak self] s in Task { @MainActor in self?.stats = s } }
@@ -407,12 +461,13 @@ final class CameraModel {
             Startup.log.notice("configured \(began.duration(to: .now), privacy: .public)")
             lenses = result.lenses
             active = result.active
-            pump.set(cropFactor: active?.cropFactor ?? 1)
+            pump.set(natives: Dictionary(lenses.filter { $0.cropFactor == 1 }.map { ($0.deviceID, Double($0.focalLength)) }, uniquingKeysWith: { a, _ in a }))
+            if let active { pump.set(focal: focal(of: active), device: active.deviceID) }
             formatLabel = backend.formatLabel
             manualRange = backend.manualRange()
             backend.setShutterLimit(shutterLimit > 0 ? shutterLimit : nil)
             backend.setMuteShutter(muteShutter)
-            backend.setNightBursts(nightBursts)
+            syncNight()
             syncScanning()
             attachControls()
             Startup.log.notice("controls attached \(began.duration(to: .now), privacy: .public)")
@@ -432,13 +487,13 @@ final class CameraModel {
     func resume() { syncPump(); backend.resume(); startTicker(); live = true }
     func refreshSettings() {
         syncPump(); publishLockedContext()
-        guard phase == .running, !switching, !firing else { return }
-        switching = true
+        guard phase == .running, !swapping, !firing else { return }
+        switching = true; swapping = true
         Task {
-            // reinstalling resets exposure in the capture layer, keep the ui in step like a lens switch does
+            // reinstalling resets exposure, keep the ui in step
             if await backend.setProRAWPreferred(!library.burstMerge) { bias = 0; exposureLocked = false }
             formatLabel = backend.formatLabel
-            switching = false
+            switching = false; swapping = false
         }
     }
     func pause() {
@@ -591,24 +646,24 @@ final class CameraModel {
 
     func isInstant(_ lens: CameraLens) -> Bool { active.map { $0.deviceID == lens.deviceID && $0.facing == lens.facing } ?? false }
 
-    func select(_ lens: CameraLens, quiet: Bool = false) {
-        // an explicit pick (not a zoom step) wins over a pending camera control settle
+    func select(_ lens: CameraLens, quiet: Bool = false, animated: Bool? = nil) {
         if !quiet { cancelZoomSettle() }
-        guard lens != active, !switching, !firing else { return }
+        guard lens != active, !swapping, !firing else { return }
         if isInstant(lens) {
-            active = lens
-            pump.set(cropFactor: lens.cropFactor)
+            show(lens, animated: animated ?? !quiet)
+            pump.set(focal: focal(of: lens), device: lens.deviceID)
             if !quiet { Haptics.tick() }
-            syncControls()
+            if zoomStart == nil { syncControls() }
             return
         }
-        switching = true
-        Haptics.bump()
+        swapping = true
+        if !quiet { switching = true; Haptics.bump() }
+        pump.set(focal: focal(of: lens), device: lens.deviceID)
         Task {
+            var landed = false
             do {
                 try await backend.select(lens)
-                active = lens
-                pump.set(cropFactor: lens.cropFactor)
+                landed = true
                 formatLabel = backend.formatLabel
                 manualRange = backend.manualRange()
                 var kept = manual
@@ -617,18 +672,41 @@ final class CameraModel {
                 if kept != manual { setManual(kept) }
                 bias = 0
                 exposureLocked = false
-            } catch { notice = "Couldn't switch to \(lens.focalLength) mm." }
-            try? await Task.sleep(nanoseconds: 120_000_000)
+            } catch {
+                notice = "Couldn't switch to \(lens.focalLength) mm."
+                if let active { pump.set(focal: focal(of: active), device: active.deviceID) }
+            }
+            if landed {
+                await firstFrame(from: lens.deviceID)
+                var shown = lens
+                if lens.facing == .back, let p = pendingZoom, let native = zoomSources.first(where: { $0.deviceID == lens.deviceID }) {
+                    shown = zoomLens(on: native, focal: p)
+                }
+                show(shown, animated: false)
+                pump.set(focal: pendingZoom ?? focal(of: shown), device: shown.deviceID)
+            }
+            if !quiet { try? await Task.sleep(nanoseconds: 120_000_000) }
+            swapping = false
             switching = false
+            if zoomStart == nil { syncControls() }
             if let p = pendingZoom {
                 pendingZoom = nil
-                if active?.facing == .back { applyZoom(p.focal, settle: p.settle || (zoomStart == nil && settleTask == nil)) }
+                if active?.facing == .back { applyZoom(p) }
             }
         }
     }
 
+    private let frameDevice = OSAllocatedUnfairLock<String?>(initialState: nil)
+
+    private func firstFrame(from device: String) async {
+        for _ in 0..<60 {
+            guard let seen = frameDevice.withLock({ $0 }), seen != device else { return }
+            try? await Task.sleep(nanoseconds: 8_000_000)
+        }
+    }
+
     func flipCamera() {
-        guard !switching, !firing else { return }
+        guard !swapping, !firing else { return }
         cancelZoomSettle()
         flips += 1
         if isFront, let back = backLenses.first(where: { $0.focalLength > 20 }) ?? backLenses.first { select(back) }
@@ -729,7 +807,7 @@ final class CameraModel {
     func file(lockedShot shot: LockedShot, in folder: URL) throws {
         let item = try library.ingest(base: folder.appendingPathComponent(shot.base),
                                       frames: shot.frames.map { (folder.appendingPathComponent($0.name), $0.scale) },
-                                      blur: shot.blur, bias: 0, aspect: library.settings.aspectRatioPreset, tag: nil)
+                                      blur: shot.blur, bias: 0, aspect: library.settings.aspectRatioPreset, tag: nil, night: shot.night == true)
         if library.settings.autoExport { autoExport(item) }
     }
 

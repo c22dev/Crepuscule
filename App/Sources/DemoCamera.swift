@@ -167,7 +167,7 @@ private struct SeededRandom: RandomNumberGenerator {
 }
 
 final class DemoCameraBackend: CameraBackend {
-    var onFrame: ((CVPixelBuffer) -> Void)?
+    var onFrame: ((CVPixelBuffer, String?) -> Void)?
     var onStats: ((FrameStats) -> Void)?
     var formatLabel: String { "DEMO RAW" }
     var captureSession: AVCaptureSession? { nil }
@@ -246,7 +246,7 @@ final class DemoCameraBackend: CameraBackend {
         let shown = base.transformed(by: t).applyingFilter("CIExposureAdjust", parameters: [kCIInputEVKey: bias]).cropped(to: e)
         context.render(shown, to: buffer, bounds: e, colorSpace: CGColorSpace(name: CGColorSpace.sRGB))
         tickStats(buffer)
-        onFrame?(buffer)
+        onFrame?(buffer, nil)
     }
 
     private var statCount = 0
