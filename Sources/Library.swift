@@ -70,6 +70,9 @@ final class Library {
     var burstMerge: Bool {
         didSet { UserDefaults.standard.set(burstMerge, forKey: "burstMerge") }
     }
+    var autoNightClean: Bool {
+        didSet { UserDefaults.standard.set(autoNightClean, forKey: "autoNightClean") }
+    }
     var bracketMetering: CameraCapture.BracketMetering {
         didSet { UserDefaults.standard.set(bracketMetering.rawValue, forKey: "bracketMetering") }
     }
@@ -100,6 +103,7 @@ final class Library {
         attachRaw = UserDefaults.standard.object(forKey: "attachRaw") as? Bool ?? true
         captureFrameStack = UserDefaults.standard.bool(forKey: "captureFrameStack")
         burstMerge = UserDefaults.standard.object(forKey: "burstMerge") as? Bool ?? true
+        autoNightClean = UserDefaults.standard.object(forKey: "autoNightClean") as? Bool ?? true
         appleVignetteAmount = UserDefaults.standard.object(forKey: "appleVignetteAmount") as? Double ?? 1
         bracketMetering = UserDefaults.standard.string(forKey: "bracketMetering").flatMap(CameraCapture.BracketMetering.init(rawValue:))
             ?? (UserDefaults.standard.bool(forKey: "bracketClosedLoop") ? .closedLoop : .locked)
@@ -303,7 +307,7 @@ final class Library {
         guard let size = Self.uprightSize(of: source) else { throw LibraryError.notRaw(source.lastPathComponent) }
         var grade = look ?? settings.perImageDefaults
         grade.cropInsets = aspect.uprightCropInsets(imageWidth: size.width, imageHeight: size.height, cropFactor: cropFactor)
-        grade.nightClean = nightBurst ? true : nil
+        grade.nightClean = nightBurst && autoNightClean ? true : nil
         let number = (items.map(\.number).max() ?? 0) + 1
         var item = PhotoItem(rawName: UUID().uuidString + ".dng", grade: grade, number: number, driveTag: driveTag, aspect: aspect)
         if cropFactor > 1 { item.cropFactor = cropFactor }

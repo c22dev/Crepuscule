@@ -80,6 +80,7 @@ struct SettingsScreen: View {
         camera.shutterLimit = 0
         camera.muteShutter = false
         camera.nightBursts = true
+        library.autoNightClean = true
         camera.scanCodes = true
         camera.showGrid = false
         camera.showLook = false
@@ -164,10 +165,11 @@ private struct CaptureSettings: View {
                     Stepper(value: $library.settings.highlightRetentionStops, in: 0.5...4, step: 0.5) {
                         LabeledContent("Highlight Protection", value: String(format: "%.1f stops", library.settings.highlightRetentionStops))
                     }
-                    Toggle("Night Bursts", isOn: $camera.nightBursts)
+                    Toggle("Night Bursts", isOn: $camera.nightBursts.animation(Motion.smooth))
+                    if camera.nightBursts { Toggle("Auto Night Clean", isOn: $library.autoNightClean) }
                     Toggle("Keep Burst Frames", isOn: $library.captureFrameStack)
                 } footer: {
-                    Text("In low light, Night Bursts takes up to 16 short frames; a moon shows by the exposure when it will. Keeping burst frames lets you merge again later, but uses much more space.")
+                    Text("In low light, Night Bursts takes up to 16 short frames; a moon shows by the exposure when it will. Auto Night Clean smooths the dark sky on those shots, and you can still turn it on per photo in the editor. Keeping burst frames lets you merge again later, but uses much more space.")
                 }
             }
             Section {
