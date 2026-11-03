@@ -11,6 +11,7 @@ struct LockedShot: Codable {
     var frames: [Frame]
     var blur: [String: Float]
     var created: Date
+    var night: Bool?
 
     static let suffix = ".shot.json"
 }

@@ -82,6 +82,7 @@ final class Library {
         }
     }
     private(set) var merging: Set<UUID> = []
+    private(set) var mergeProgress: [UUID: Double] = [:]
     private(set) var mergeStamp: [UUID: Int] = [:]
     private var mergeWaiters: [UUID: [CheckedContinuation<Void, Never>]] = [:]
 
@@ -141,7 +142,8 @@ final class Library {
         try? d.write(to: folder(item.id).appendingPathComponent("item.json"), options: .atomic)
     }
 
-    func mergeBurst(_ id: UUID, scales: [String: Float]? = nil, blur: [String: Float]? = nil, bias: Float? = nil) {
+    // fresh captures on userInitiated (p cores), housekeeping remerges stay utility
+    func mergeBurst(_ id: UUID, scales: [String: Float]? = nil, blur: [String: Float]? = nil, bias: Float? = nil, priority: TaskPriority = .utility) {
         guard let i = items.firstIndex(where: { $0.id == id }), !items[i].extraFrames.isEmpty, !merging.contains(id) else { return }
         if let scales { items[i].frameScales = scales }
         if let blur { items[i].frameBlur = blur }
@@ -168,7 +170,9 @@ final class Library {
         let release: @MainActor () -> Void = {
             if background != .invalid { UIApplication.shared.endBackgroundTask(background); background = .invalid }
         }
-        Task.detached(priority: .utility) {
+        mergeProgress[id] = 0
+        let report: MergeProgress = { p in Task { @MainActor in self.reportProgress(id, p) } }
+        Task.detached(priority: priority) {
             let temp = dir.appendingPathComponent("merging.dng")
             var archived = item.archivedBase
             let ok: Bool
@@ -177,13 +181,13 @@ final class Library {
                 if trySuperRes {
                     do {
                         let base = frames.indices.filter { abs(frames[$0].scale - 1) < 0.001 }
-                        try SuperResolution.reconstructFiles(base.map { frames[$0].url }, cropFactor: crop, blurPixels: base.map { blurs[$0] }, to: temp)
+                        try SuperResolution.reconstructFiles(base.map { frames[$0].url }, cropFactor: crop, blurPixels: base.map { blurs[$0] }, progress: report, to: temp)
                         superRes = true
                     } catch {
                         try? FileManager.default.removeItem(at: temp)
                     }
                 }
-                if !superRes { try BurstMerger.mergeFiles(frames, blurPixels: blurs, exposureBiasStops: captureBias, to: temp) }
+                if !superRes { try BurstMerger.mergeFiles(frames, blurPixels: blurs, exposureBiasStops: captureBias, progress: report, to: temp) }
                 if keep, archived == nil {
                     let name = "base_" + item.rawName
                     try FileManager.default.copyItem(at: raw, to: dir.appendingPathComponent(name))
@@ -265,8 +269,14 @@ final class Library {
         }
     }
 
+    private func reportProgress(_ id: UUID, _ p: Double) {
+        guard merging.contains(id), p > mergeProgress[id] ?? 0 else { return }
+        mergeProgress[id] = p
+    }
+
     private func finishMerge(_ id: UUID, merged: Bool, keepFrames: Bool, archived: String?, superResolved: Bool = false) async {
         merging.remove(id)
+        mergeProgress.removeValue(forKey: id)
         defer { mergeWaiters.removeValue(forKey: id)?.forEach { $0.resume() } }
         guard merged, let i = items.firstIndex(where: { $0.id == id }) else { return }
         mergeStamp[id, default: 0] += 1
@@ -294,6 +304,7 @@ final class Library {
         guard let size = Self.uprightSize(of: source) else { throw LibraryError.notRaw(source.lastPathComponent) }
         var grade = settings.perImageDefaults
         grade.cropInsets = aspect.uprightCropInsets(imageWidth: size.width, imageHeight: size.height, cropFactor: cropFactor)
+        grade.nightClean = nightBurst ? true : nil
         let number = (items.map(\.number).max() ?? 0) + 1
         var item = PhotoItem(rawName: UUID().uuidString + ".dng", grade: grade, number: number, driveTag: driveTag, aspect: aspect)
         if cropFactor > 1 { item.cropFactor = cropFactor }
@@ -324,7 +335,7 @@ final class Library {
             for f in frames { scales[f.url.lastPathComponent] = f.scale }
             var renamed: [String: Float] = [:]
             for (name, px) in blur { renamed[name == base.lastPathComponent ? item.rawName : name] = px }
-            mergeBurst(item.id, scales: scales, blur: renamed, bias: bias)
+            mergeBurst(item.id, scales: scales, blur: renamed, bias: bias, priority: .userInitiated)
         }
         return item
     }
@@ -378,12 +389,8 @@ final class Library {
     func saveLook(named name: String, grade: Grade) {
         var g = grade
         g.cropInsets = CropInsets(); g.mirrored = false; g.rotationQuarterTurns = 0; g.fineRotationDegrees = 0
+        g.nightClean = nil
         looks.append(NamedLook(name: name, grade: g))
-        if let d = try? JSONEncoder().encode(looks) { try? d.write(to: looksURL, options: .atomic) }
-    }
-
-    func deleteLook(_ id: UUID) {
-        looks.removeAll { $0.id == id }
         if let d = try? JSONEncoder().encode(looks) { try? d.write(to: looksURL, options: .atomic) }
     }
 

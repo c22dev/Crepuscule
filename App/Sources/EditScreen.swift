@@ -146,6 +146,7 @@ struct EditScreen: View {
             Button {
                 var g = grade
                 g.cropInsets = CropInsets(); g.mirrored = false; g.rotationQuarterTurns = 0; g.fineRotationDegrees = 0
+                g.nightClean = nil
                 library.settings.perImageDefaults = g
                 Haptics.bump()
             } label: { Label("Set as Default Grade", systemImage: "checkmark.seal") }
@@ -160,6 +161,7 @@ struct EditScreen: View {
         var g = look
         g.cropInsets = grade.cropInsets; g.mirrored = grade.mirrored
         g.rotationQuarterTurns = grade.rotationQuarterTurns; g.fineRotationDegrees = grade.fineRotationDegrees
+        g.nightClean = grade.nightClean
         return g
     }
 
@@ -337,6 +339,7 @@ struct EditScreen: View {
         case .color:
             ActionCircle(symbol: "circle.lefthalf.striped.horizontal", title: "Black and White", on: grade.blackAndWhite) { grade.blackAndWhite.toggle() }
         case .texture:
+            ActionCircle(symbol: "moon.stars", title: "Night Clean", on: grade.nightClean == true) { grade.nightClean = grade.nightClean == true ? nil : true }
             ActionCircle(symbol: "squareshape.split.3x3", title: "Pixel Grain", on: grade.pixSizeGrain) { grade.pixSizeGrain.toggle() }
             Menu {
                 Picker("Halation", selection: Binding(
@@ -568,7 +571,6 @@ private struct RulerScrubber: View {
     @State private var lastMark: Int?
 
     private let length: CGFloat = 340
-    // same ~11pt pitch as the camera dial in both modes, one detent per tick
     private var ticks: Int { fine ? 300 : 30 }
 
     var body: some View {

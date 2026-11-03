@@ -91,7 +91,7 @@ final class LockedCameraModel {
     private func write(_ r: CaptureResult) throws {
         let shot = LockedShot(base: r.baseURL.lastPathComponent,
                               frames: r.frames.map { .init(name: $0.url.lastPathComponent, scale: Float($0.spec?.exposureScale ?? 1)) },
-                              blur: r.blurPixels, created: Date())
+                              blur: r.blurPixels, created: Date(), night: r.night)
         let url = lockedSession.sessionContentURL.appendingPathComponent(UUID().uuidString + LockedShot.suffix)
         try JSONEncoder().encode(shot).write(to: url, options: .atomic)
     }

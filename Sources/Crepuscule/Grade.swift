@@ -50,13 +50,14 @@ public struct Grade: Codable, Hashable, Sendable {
     public var mirrored = false
     public var rotationQuarterTurns = 0
     public var fineRotationDegrees = 0.0
+    // set on night captures: sky noise cleanup + deeper blacks (optional so older grades still decode)
+    public var nightClean: Bool?
 
     public init() {}
 }
 
 public enum Presets {
     public static let factoryDefault = Grade()
-    public static let photochemicalHalation = factoryDefault
     public static let opticalHalation: Grade = {
         var g = Grade(); g.halation.preset = .optical; return g
     }()

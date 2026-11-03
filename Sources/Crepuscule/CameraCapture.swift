@@ -28,6 +28,8 @@ public struct CaptureResult: Sendable {
     public let frames: [(url: URL, spec: BurstFrameSpec?)]
     public let cropInsets: CropInsets
     public var blurPixels: [String: Float] = [:]
+    // the burst was planned as a night burst
+    public var night = false
     public init(baseURL: URL, frames: [(url: URL, spec: BurstFrameSpec?)], cropInsets: CropInsets) {
         self.baseURL = baseURL; self.frames = frames; self.cropInsets = cropInsets
     }
@@ -45,7 +47,8 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
     private var latestStats: FrameStats?
     private var frameIndex = 0
     private var input: AVCaptureDeviceInput?
-    public var onFrame: ((CVPixelBuffer) -> Void)?
+    // camera id of the frame, can lag activeDevice mid switch
+    public var onFrame: ((CVPixelBuffer, String?) -> Void)?
     public var onStats: ((FrameStats) -> Void)?
     public var burstEnabled = true
     public var nightBursts = true
@@ -77,7 +80,7 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
     public let directory: URL
 
     public private(set) var prefersProRAW = false
-    // queue only
+    // session queue only
     private var manual = ManualSettings()
 
     public init(directory: URL) { self.directory = directory }
@@ -86,7 +89,6 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
     public func setPrefersProRAW(_ on: Bool) async throws -> Bool {
         let d: AVCaptureDevice? = await withCheckedContinuation { c in
             queue.async { [self] in
-                // only reinstall when the mode really flips (never on phones without proraw)
                 let changed = prefersProRAW != on && output.isAppleProRAWSupported && mode != (on ? .proRAW : .bayerRAW)
                 prefersProRAW = on
                 c.resume(returning: changed ? device : nil)
@@ -167,7 +169,6 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
                         }
                     }
                     output.maxPhotoQualityPrioritization = .speed
-                    // bayer by default so bursts + super res work on pro phones too, proraw only for single frame
                     let pro = prefersProRAW && output.isAppleProRAWSupported
                     if output.isAppleProRAWSupported { output.isAppleProRAWEnabled = pro }
                     mode = pro ? .proRAW : .bayerRAW
@@ -178,7 +179,6 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
                         if d.exposureMode == .custom || d.exposureMode == .locked, d.isExposureModeSupported(.continuousAutoExposure) {
                             d.exposureMode = .continuousAutoExposure
                         }
-                        // new device starts on auto, manual values carry over clamped to its range
                         applyManual(d, was: ManualSettings())
                         d.unlockForConfiguration()
                     }
@@ -219,7 +219,6 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
                 if device.isFocusPointOfInterestSupported { device.focusPointOfInterest = point }
                 if device.isFocusModeSupported(.autoFocus) { device.focusMode = .autoFocus }
             }
-            // in manual the point still steers the meter that priority modes follow
             if device.isExposurePointOfInterestSupported { device.exposurePointOfInterest = point }
             if !manual.exposureManual, device.isExposureModeSupported(.continuousAutoExposure) { device.exposureMode = .continuousAutoExposure }
         }
@@ -262,7 +261,6 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
         }
     }
 
-    // unset values go to the system's own priority auto, which also follows the bias
     private func applyManualExposure(_ device: AVCaptureDevice) {
         guard device.isExposureModeSupported(.custom) else { return }
         let f = device.activeFormat
@@ -280,7 +278,6 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
                 return
             }
         }
-        // no priority mode for this combo, hold the free side where auto left it
         device.setExposureModeCustom(duration: duration ?? AVCaptureDevice.currentExposureDuration, iso: iso ?? AVCaptureDevice.currentISO, completionHandler: nil)
     }
 
@@ -592,19 +589,16 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
                         let limits = BurstPlanner.Limits(minISO: f.minISO, maxISO: f.maxISO,
                                                          minDuration: CMTimeGetSeconds(f.minExposureDuration), maxDuration: CMTimeGetSeconds(f.maxExposureDuration))
                         let fov = Double(f.videoFieldOfView) * .pi / 180
-                        // blur is judged in output pixels, super res upscales the crop up to 2x
-                        let srScale = zoomCropFactor >= BurstZoom.superResCrop ? min(zoomCropFactor, 2) : 1
                         let night = nightBursts && fov > 0 && !manual.exposureManual
-                            ? NightBurst(rotationRate: motionGate.rotationRate, pixelsPerRadian: Double(output.maxPhotoDimensions.width) / fov * srScale) : nil
+                            ? NightBurst(rotationRate: motionGate.rotationRate, pixelsPerRadian: Double(output.maxPhotoDimensions.width) / fov) : nil
                         let zoom = BurstZoom(cropFactor: zoomCropFactor,
-                                             focalLength: Double(CameraLens.equivalentFocalLength(horizontalFOVDegrees: Double(f.videoFieldOfView))) * zoomCropFactor,
-                                             rotationRate: motionGate.rotationRate,
-                                             pixelsPerRadian: fov > 0 ? Double(output.maxPhotoDimensions.width) / fov * srScale : 0)
+                                             focalLength: Double(CameraLens.equivalentFocalLength(horizontalFOVDegrees: Double(f.videoFieldOfView))) * zoomCropFactor)
                         meterLog.notice("[Burst] meter locked ISO \(Int(device.iso), privacy: .public) @ 1/\(Int((1 / max(CMTimeGetSeconds(device.exposureDuration), 1e-6)).rounded()), privacy: .public), bias \(String(format: "%+.2f", device.exposureTargetBias), privacy: .public) (offset \(String(format: "%+.2f", device.exposureTargetOffset), privacy: .public), adjusting \(device.isAdjustingExposure ? 1 : 0, privacy: .public), mode \(device.exposureMode.rawValue, privacy: .public))")
                         let plan = BurstPlanner.plan(iso: device.iso, duration: CMTimeGetSeconds(device.exposureDuration), limits: limits,
                                                      hints: hints, highlightRetentionStops: highlightRetentionStops, night: night,
                                                      zoom: manual.exposureManual ? nil : zoom)
-                        runBurst(plan, format: format, gps: gpsMetadata, continuation: c)
+                        let nightPlanned = night != nil && NightBurst.applies(iso: device.iso, duration: CMTimeGetSeconds(device.exposureDuration))
+                        runBurst(plan, format: format, gps: gpsMetadata, night: nightPlanned, continuation: c)
                     }
                 } catch { c.resume(throwing: error) }
             }
@@ -632,7 +626,7 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
         s.metadata = m
     }
 
-    private func runBurst(_ plan: [BurstFrameSpec], format: OSType, gps: [String: Any]?, continuation c: CheckedContinuation<CaptureResult, Error>) {
+    private func runBurst(_ plan: [BurstFrameSpec], format: OSType, gps: [String: Any]?, night: Bool = false, continuation c: CheckedContinuation<CaptureResult, Error>) {
         let maxChunk = max(output.maxBracketedCapturePhotoCount, 1)
         let chunks = stride(from: 0, to: plan.count, by: maxChunk).map { Array(plan[$0..<min($0 + maxChunk, plan.count)]) }
         let run = BurstRun()
@@ -648,6 +642,7 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
             if let base = run.frames.first(where: { $0.spec?.role == .base }) ?? run.frames.first {
                 var result = CaptureResult(baseURL: base.url, frames: run.frames, cropInsets: currentCropInsets())
                 result.blurPixels = run.blur
+                result.night = night
                 c.resume(returning: result)
             } else {
                 c.resume(throwing: error)
@@ -660,6 +655,7 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
                     restoreAutoExposure()
                     var result = CaptureResult(baseURL: base.url, frames: run.frames, cropInsets: currentCropInsets())
                     result.blurPixels = run.blur
+                    result.night = night
                     c.resume(returning: result)
                 } else { c.resume(throwing: CaptureError.noData) }
                 return
@@ -754,7 +750,7 @@ extension CameraCapture: AVCaptureVideoDataOutputSampleBufferDelegate {
             statsLock.lock(); latestStats = stats; statsLock.unlock()
             onStats?(stats)
         }
-        onFrame?(buffer)
+        onFrame?(buffer, (connection.inputPorts.first?.input as? AVCaptureDeviceInput)?.device.uniqueID)
     }
 }
 

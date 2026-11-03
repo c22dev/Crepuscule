@@ -31,6 +31,7 @@ struct AtanContrastParams { var contrast, pivot: Float }
 struct PreExposureParams { var redGain, greenGain, blueGain, saturation: Float }
 struct PostHalationParams { var grainAmplitude: Float; var blackAndWhite: UInt32 }
 struct FusedGradeParams { var redGain, greenGain, blueGain, saturation, grainAmplitude: Float; var blackAndWhite: UInt32 }
+struct NightCleanParams { var lo, hi, kLuma, kChroma, toe: Float }
 struct RawUnpackParams { var srcWidth, srcHeight, dstWidth, dstHeight: UInt32; var parameterB, parameterC: Float }
 
 public struct DecodedRaw {
@@ -64,6 +65,11 @@ public final class ColorPipelineRenderer {
             self.library = try device.makeLibrary(source: String(contentsOf: url), options: options)
         }
         ciContext = CIContext(mtlDevice: device)
+    }
+
+    // builds every pipeline up front (they are otherwise made lazily on first use)
+    public func prewarmPipelines() {
+        for name in library.functionNames { _ = try? pso(name) }
     }
 
     func pso(_ name: String) throws -> MTLComputePipelineState {
@@ -309,7 +315,28 @@ public final class ColorPipelineRenderer {
         return out
     }
 
+    // one shared parse, the cube is 7 MB of text (~250 ms)
+    private static let cubeLock = NSLock()
+    nonisolated(unsafe) private static var parsedCubes: [URL: (size: Int, values: [Float])] = [:]
+
     public func loadCube(url: URL) throws -> MTLTexture {
+        let key = url.standardizedFileURL
+        Self.cubeLock.lock()
+        defer { Self.cubeLock.unlock() }
+        let parsed: (size: Int, values: [Float])
+        if let hit = Self.parsedCubes[key] {
+            parsed = hit
+        } else {
+            parsed = try Self.parseCube(url: url)
+            Self.parsedCubes[key] = parsed
+        }
+        let size = parsed.size
+        let t = try lutTexture(size)
+        t.replace(region: MTLRegionMake3D(0, 0, 0, size, size, size), mipmapLevel: 0, slice: 0, withBytes: parsed.values, bytesPerRow: size * 16, bytesPerImage: size * size * 16)
+        return t
+    }
+
+    static func parseCube(url: URL) throws -> (size: Int, values: [Float]) {
         let text = try String(contentsOf: url, encoding: .utf8)
         var size = 0
         var values: [Float] = []
@@ -327,9 +354,7 @@ public final class ColorPipelineRenderer {
             }
         }
         guard size > 0, values.count == size * size * size * 4 else { throw PipelineError.lut("LUT data does not match declared size") }
-        let t = try lutTexture(size)
-        t.replace(region: MTLRegionMake3D(0, 0, 0, size, size, size), mipmapLevel: 0, slice: 0, withBytes: values, bytesPerRow: size * 16, bytesPerImage: size * size * 16)
-        return t
+        return (size, values)
     }
 
     private func lutTexture(_ size: Int) throws -> MTLTexture {
@@ -377,9 +402,8 @@ public final class ColorPipelineRenderer {
         return t
     }
 
-    public func makeGrainPlate(grainSize: Float, cropScale: Float, seed: Float, width: Int, height: Int, referenceWidth: Int? = nil, pixelSize: Bool) throws -> MTLTexture {
+    public func makeGrainPlate(grainSize: Float, cropScale: Float, seed: Float, width: Int, height: Int, pixelSize: Bool) throws -> MTLTexture {
         let w = max(width, 1), h = max(height, 1)
-        let reference = max(referenceWidth ?? w, w)
         var seedValue = seed
         if pixelSize {
             let plate = try texture(.r16Float, w, h)
@@ -396,10 +420,9 @@ public final class ColorPipelineRenderer {
         }
         let area = max(Double(grainSize) * Double(cropScale), 0.0001)
         let gridWidth = max(Int((1 / area) * 3686), 1)
-        let scaled = Int(Double(w) * Double(gridWidth) / Double(reference))
-        var coarseW = max(scaled, 1)
+        var coarseW = gridWidth
         var comp: Float = 1
-        if w < scaled {
+        if w < gridWidth {
             comp = Float(sqrt(Double(w) / Double(coarseW)))
             coarseW = w
         }
@@ -430,7 +453,7 @@ public final class ColorPipelineRenderer {
         return plate
     }
 
-    public func grade(_ source: MTLTexture, grade: Grade, baselineStops: Float, lut baseLUT: MTLTexture, seed: Float? = nil, referenceWidth: Int? = nil, cropScale: Float? = nil) throws -> MTLTexture {
+    public func grade(_ source: MTLTexture, grade: Grade, baselineStops: Float, lut baseLUT: MTLTexture, seed: Float? = nil, cropScale: Float? = nil) throws -> MTLTexture {
         let w = source.width, h = source.height
         let lut = try cachedBakedLUT(baseLUT, contrast: grade.atanContrast, pivot: grade.atanPivot)
         let final = try texture(.rgba8Unorm, w, h, usage: [.shaderWrite, .shaderRead])
@@ -442,7 +465,7 @@ public final class ColorPipelineRenderer {
             plate = try zeroGrainPlate(w, h)
         } else {
             plate = try makeGrainPlate(grainSize: grade.grainSize, cropScale: scale, seed: seed ?? Float.random(in: 0..<1_000_000),
-                                       width: w, height: h, referenceWidth: referenceWidth, pixelSize: grade.pixSizeGrain)
+                                       width: w, height: h, pixelSize: grade.pixSizeGrain)
         }
         var tone = shoulderToeParams(highlights: grade.highlights, shadows: grade.shadows)
         let bw: UInt32 = grade.blackAndWhite ? 1 : 0
@@ -457,7 +480,7 @@ public final class ColorPipelineRenderer {
                 e.setBytes(&tone, length: 20, index: 1)
             }
             cb.commit(); try cb.finish()
-            return final
+            return grade.nightClean == true ? try nightClean(final) : final
         }
 
         let t0 = try texture(.rgba16Float, w, h), t1 = try texture(.rgba16Float, w, h)
@@ -473,7 +496,7 @@ public final class ColorPipelineRenderer {
             e.setTexture(t0, index: 0); e.setTexture(t1, index: 1)
             e.setBytes(&wrap, length: 20, index: 0)
         }
-        let basis = Float(referenceWidth ?? w)
+        let basis = Float(w)
         var radius = basis * 10 * 0.00048828125
         func blur(_ name: String, _ a: MTLTexture, _ b: MTLTexture) throws {
             try dispatch(cb, name, w, h) { e in
@@ -499,7 +522,33 @@ public final class ColorPipelineRenderer {
             e.setBytes(&post, length: 8, index: 0)
         }
         cb.commit(); try cb.finish()
-        return final
+        return grade.nightClean == true ? try nightClean(final) : final
+    }
+
+    // night clean, tuned on a 2880px export, so the radii scale with the image
+    // cleans dark flat areas (sky) and deepens the blacks, leaves anything near a light alone
+    public func nightClean(_ graded: MTLTexture) throws -> MTLTexture {
+        let w = graded.width, h = graded.height
+        let k = Double(max(w, h)) / 2880
+        let rgb = CGColorSpaceCreateDeviceRGB(), linear = CGColorSpace(name: CGColorSpace.linearSRGB)!
+        guard let image = CIImage(mtlTexture: graded, options: [.colorSpace: rgb]) else { throw PipelineError.texture }
+        let edge = image.clampedToExtent()
+        let blurred = edge.applyingGaussianBlur(sigma: 4 * k).cropped(to: image.extent)
+        let localMax = edge.applyingGaussianBlur(sigma: 2 * k)
+            .applyingFilter("CIMorphologyMaximum", parameters: [kCIInputRadiusKey: 8 * k]).cropped(to: image.extent)
+        let blurTex = try texture(.rgba16Float, w, h), maxTex = try texture(.rgba16Float, w, h)
+        let out = try texture(.rgba8Unorm, w, h, usage: [.shaderWrite, .shaderRead])
+        guard let cb = queue.makeCommandBuffer() else { throw PipelineError.texture }
+        let bounds = CGRect(x: 0, y: 0, width: w, height: h)
+        ciContext.render(blurred, to: blurTex, commandBuffer: cb, bounds: bounds, colorSpace: linear)
+        ciContext.render(localMax, to: maxTex, commandBuffer: cb, bounds: bounds, colorSpace: linear)
+        var p = NightCleanParams(lo: 0.025, hi: 0.05, kLuma: 0.6, kChroma: 0.8, toe: 0.016)
+        try dispatch(cb, "nightClean", w, h) { e in
+            e.setTexture(graded, index: 0); e.setTexture(blurTex, index: 1); e.setTexture(maxTex, index: 2); e.setTexture(out, index: 3)
+            e.setBytes(&p, length: MemoryLayout<NightCleanParams>.size, index: 0)
+        }
+        cb.commit(); try cb.finish()
+        return out
     }
 
     public func render(dng url: URL, grade g: Grade, lut: MTLTexture, seed: Float? = nil, maxDimension: Int? = nil, exportLongSide: Int? = nil) throws -> CGImage {
@@ -507,8 +556,7 @@ public final class ColorPipelineRenderer {
         let raw = try decode(url: url, metadata: meta)
         let base = try upload(raw, maxDimension: maxDimension)
         let cropped = try applyGeometry(base, grade: g, longSide: exportLongSide)
-        return try cgImage(try grade(cropped, grade: g, baselineStops: raw.baselineExposureStops, lut: lut, seed: seed,
-                                     referenceWidth: exportLongSide == nil ? nil : base.width))
+        return try cgImage(try grade(cropped, grade: g, baselineStops: raw.baselineExposureStops, lut: lut, seed: seed))
     }
 
     public func cgImage(_ t: MTLTexture) throws -> CGImage {

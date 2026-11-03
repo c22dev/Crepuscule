@@ -362,3 +362,33 @@ kernel void cubicResizeVerticalToRGB16Packed(texture2d<float, access::read> inte
     uint i = (params.dstWidth * gid.y + gid.x) * 3;
     dst[i] = ushort(v.r); dst[i + 1] = ushort(v.g); dst[i + 2] = ushort(v.b);
 }
+
+// night clean: dark flat areas take blurred luma/chroma, then a soft toe deepens the blacks.
+// src is the display encoded grade output, blurred and localMax are linear.
+// the mask reads the local max of a lightly blurred copy, so any light nearby turns it off (no halos)
+struct NightCleanParams { float lo, hi, kLuma, kChroma, toe; };
+
+static inline float3 srgbToLinear(float3 c) {
+    return select(pow((c + 0.055f) / 1.055f, 2.4f), c / 12.92f, c <= 0.04045f);
+}
+static inline float3 linearToSRGB(float3 c) {
+    c = max(c, 0.0f);
+    return select(1.055f * pow(c, 1.0f / 2.4f) - 0.055f, c * 12.92f, c <= 0.0031308f);
+}
+
+kernel void nightClean(texture2d<float, access::read> src [[texture(0)]], texture2d<float, access::read> blurred [[texture(1)]],
+                       texture2d<float, access::read> localMax [[texture(2)]], texture2d<float, access::write> dst [[texture(3)]],
+                       constant NightCleanParams &p [[buffer(0)]], uint2 gid [[thread_position_in_grid]]) {
+    if (gid.x >= dst.get_width() || gid.y >= dst.get_height()) return;
+    const float3 w = float3(0.2126f, 0.7152f, 0.0722f);
+    float4 s4 = src.read(gid);
+    float3 s = srgbToLinear(s4.rgb);
+    float3 b = blurred.read(gid).rgb;
+    float ys = dot(s, w), yb = dot(b, w);
+    float m = 1.0f - smoothstep(p.lo, p.hi, dot(localMax.read(gid).rgb, w));
+    float y2 = mix(ys, yb, p.kLuma * m);
+    float3 c = max(y2 + mix(s - ys, b - yb, p.kChroma * m), 0.0f);
+    float y = max(dot(c, w), 1e-6f);
+    c *= (y / (y + p.toe));
+    dst.write(float4(linearToSRGB(c), s4.a), gid);
+}

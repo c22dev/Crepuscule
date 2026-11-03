@@ -46,6 +46,9 @@ struct CameraView: View {
         }
         .ignoresSafeArea(edges: .bottom)
         .animation(Motion.snappy, value: model.controlsFullscreen)
+        .animation(Motion.snappy, value: model.nightAvailable)
+        .animation(Motion.snappy, value: model.nightActive)
+        .onChange(of: model.nightAvailable) { _, on in if !on { model.nightDeclined = false } }
         .background { AmbientBackdrop(display: ambientDisplay).ignoresSafeArea() }
     }
 
@@ -104,6 +107,7 @@ struct CameraView: View {
             .accessibilityLabel("Aspect ratio, \(model.aspect.label)")
             lookMenu
             Spacer()
+            if model.nightAvailable { nightButton.transition(.scale(scale: 0.6).combined(with: .opacity)) }
             Menu {
                 Section("Drive") {
                     Picker("Drive", selection: $model.drive) {
@@ -135,6 +139,30 @@ struct CameraView: View {
             .glassEffect(.regular.interactive(), in: .circle)
             .accessibilityLabel("Settings")
         }
+    }
+
+    // auto on in low light (sparkle), tap to turn it off for this scene
+    private var nightButton: some View {
+        Button { model.toggleNight() } label: {
+            Image(systemName: model.nightActive ? "moon.fill" : "moon")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(model.nightActive ? Ink.dusk : Ink.paper)
+                .contentTransition(.symbolEffect(.replace))
+                .frame(width: 44, height: 44)
+                .overlay(alignment: .topTrailing) {
+                    Image(systemName: "sparkle")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(Ink.ember)
+                        .padding(9)
+                        .opacity(model.nightActive ? 1 : 0)
+                        .scaleEffect(model.nightActive ? 1 : 0.4)
+                }
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular.interactive(), in: .circle)
+        .accessibilityLabel("Night mode")
+        .accessibilityValue(model.nightActive ? "Automatic, on" : "Off")
+        .accessibilityHint("Takes a night burst and cleans up the dark sky")
     }
 
     private var readoutButton: some View {
@@ -636,11 +664,6 @@ struct ShutterButton: View {
             Circle().strokeBorder(Color(red: 0.72, green: 0.78, blue: 1).opacity(0.16), lineWidth: 9)
                 .frame(width: 86, height: 86)
                 .opacity(edge == .night ? 1 : 0)
-            Image(systemName: "moon.fill")
-                .font(.system(size: 7.5, weight: .semibold))
-                .foregroundStyle(Ink.paper.opacity(0.85))
-                .offset(y: -38.5)
-                .opacity(edge == .night ? 1 : 0)
             Circle().strokeBorder(Ink.ember.opacity(0.9), lineWidth: 2)
                 .frame(width: 86, height: 86)
                 .opacity(edge == .locked ? 1 : 0)
@@ -655,6 +678,13 @@ struct ShutterButton: View {
             RoundedRectangle(cornerRadius: sequence ? 6 : 34, style: .continuous)
                 .fill(.white)
                 .frame(width: sequence ? 28 : 68, height: sequence ? 28 : 68)
+                .overlay {
+                    Image(systemName: "moon.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Ink.ground.opacity(0.55))
+                        .opacity(edge == .night ? 1 : 0)
+                        .scaleEffect(edge == .night ? 1 : 0.6)
+                }
                 .opacity(capturing ? 0.8 : 1)
                 .scaleEffect(pressed ? 0.88 : capturing ? 0.84 : 1)
                 .animation(.spring(response: 0.26, dampingFraction: 0.72), value: pressed)
@@ -705,6 +735,8 @@ struct NewestPhotoButton: View {
         return id
     }
 
+    private var mergeProgress: Double { mergingID.flatMap { library.mergeProgress[$0] } ?? 0 }
+
     var body: some View {
         let still = reduceMotion
         let shape = ConcentricRectangle(uniformTopCorners: .fixed(Radius.thumb), bottomLeadingCorner: .concentric(minimum: .fixed(Radius.thumb)), bottomTrailingCorner: .fixed(Radius.thumb))
@@ -747,6 +779,13 @@ struct NewestPhotoButton: View {
                 if library.newest?.id == old, library.item(old)?.mergeAlg != nil { finishRing() } else { hideRing() }
             }
         }
+        .onChange(of: mergeProgress) { _, p in
+            guard mergingID != nil, ringOpacity > 0 else { return }
+            // stays a hair short of full so finishRing has a last step
+            let target = CGFloat(min(p, 1)) * 0.95
+            guard target > ringFraction else { return }
+            if reduceMotion { ringFraction = target } else { withAnimation(.easeOut(duration: 0.35)) { ringFraction = target } }
+        }
     }
 
     private func startRing(_ id: UUID) {
@@ -755,17 +794,11 @@ struct NewestPhotoButton: View {
         reset.disablesAnimations = true
         withTransaction(reset) { ringFraction = 0 }
         let run = ringRun
-        let item = library.item(id)
-        let frames = Double(item?.frameCount ?? 4)
-        let expected = item?.isNightBurst == true ? max(6, frames * 0.4) : (item?.cropFactor ?? 1) >= 1.95 ? 4.5 : 3
         Task { @MainActor in
             guard run == ringRun else { return }
             withAnimation(Motion.fade) { ringOpacity = reduceMotion ? 0.7 : 1 }
-            if reduceMotion {
-                ringFraction = 1
-            } else {
-                withAnimation(.timingCurve(0.2, 0.7, 0.3, 1, duration: expected)) { ringFraction = 0.9 }
-            }
+            let target = CGFloat(min(library.mergeProgress[id] ?? 0, 1)) * 0.95
+            if reduceMotion { ringFraction = target } else { withAnimation(.easeOut(duration: 0.35)) { ringFraction = target } }
         }
     }
 

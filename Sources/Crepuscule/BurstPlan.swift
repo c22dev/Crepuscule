@@ -38,40 +38,19 @@ public struct NightBurst: Sendable, Equatable {
     }
 }
 
-// zoomed shots: super res wants lots of slightly shifted frames, and the crop magnifies shake
 public struct BurstZoom: Sendable, Equatable {
     public var cropFactor: Double
     public var focalLength: Double
-    public var rotationRate: Double?
-    public var pixelsPerRadian: Double
     public static let minCrop = 1.5
-    // super res keeps only same-exposure frames (no highlight shorts), so below this the hdr merge wins
+    // below this the hdr merge wins, super res drops the shorts
     public static let superResCrop = 1.95
     public static let minFrames = 8
     public static let maxFrames = 16
-    // more crop, more to gain from extra shifted frames
-    public var targetFrames: Int { cropFactor >= 4 ? Self.maxFrames : cropFactor >= 2.5 ? 12 : Self.minFrames }
     public static let budget = 1.2
-    // shortening the shutter costs iso, the extra frames only buy back about that much
-    public static let maxStopsMeasured = 2.0, maxStopsGuessed = 1.0
-    public init(cropFactor: Double, focalLength: Double, rotationRate: Double? = nil, pixelsPerRadian: Double = 0) {
-        self.cropFactor = cropFactor; self.focalLength = focalLength; self.rotationRate = rotationRate; self.pixelsPerRadian = pixelsPerRadian
-    }
+    public var targetFrames: Int { cropFactor >= 4 ? Self.maxFrames : cropFactor >= 2.5 ? 12 : Self.minFrames }
+    public init(cropFactor: Double, focalLength: Double) { self.cropFactor = cropFactor; self.focalLength = focalLength }
 
     public var applies: Bool { cropFactor >= Self.minCrop && focalLength > 0 }
-
-    // gyro says how much it actually shakes; without it fall back to the 1/(2f) rule, gentler
-    func frameDuration(iso: Float, duration: Double, limits l: BurstPlanner.Limits) -> Double {
-        var d = duration, floor = duration / pow(2, Self.maxStopsGuessed)
-        if let rate = rotationRate, rate > 0, pixelsPerRadian > 0 {
-            d = min(d, NightBurst.blurPixels / (rate * pixelsPerRadian))
-            floor = duration / pow(2, Self.maxStopsMeasured)
-        } else if rotationRate == nil {
-            d = min(d, 1 / (2 * focalLength))
-        }
-        d = max(d, floor, Double(iso) * duration / Double(l.maxISO))
-        return min(max(d, l.minDuration), l.maxDuration)
-    }
 }
 
 public enum BurstPlanner {
@@ -91,9 +70,7 @@ public enum BurstPlanner {
         var iso = min(max(rawISO.isFinite && rawISO > 0 ? rawISO : l.minISO, l.minISO), l.maxISO)
         var duration = min(max(rawDuration.isFinite && rawDuration > 0 ? rawDuration : 1.0 / 60, l.minDuration), l.maxDuration)
         var count = frameCount(iso: iso)
-        var nightApplied = false
         if let night, NightBurst.applies(iso: iso, duration: duration) {
-            nightApplied = true
             let d = night.frameDuration(iso: iso, duration: duration, limits: l)
             iso = min(max(iso * Float(duration / d), l.minISO), l.maxISO)
             duration = d
@@ -104,12 +81,6 @@ public enum BurstPlanner {
         }
         let zoomed = zoom?.applies == true
         if let zoom, zoomed {
-            // night already sized the shutter from the gyro, only add frames there
-            let d = nightApplied ? duration : zoom.frameDuration(iso: iso, duration: duration, limits: l)
-            if d < duration {
-                iso = min(max(iso * Float(duration / d), l.minISO), l.maxISO)
-                duration = d
-            }
             let fit = max(Int(BurstZoom.budget / duration), 2)
             count = min(max(count, min(zoom.targetFrames, fit)), BurstZoom.maxFrames)
         }
@@ -149,7 +120,7 @@ public enum BurstPlanner {
         }
         var frames: [BurstFrameSpec] = []
         var used = 0
-        // count = base frames, shorts get slotted in front (like 100039ee8)
+        // count = base frames, shorts go in front
         for i in 0..<count {
             if positions.contains(i), used < shorts.count {
                 frames.append(shorts[used]); used += 1
