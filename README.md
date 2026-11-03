@@ -9,7 +9,7 @@ Every press of the shutter is a burst of RAW frames, merged into one cleaner RAW
 - **Looks** : Factory and Mono out of the box, with live preview in the viewfinder. The editor has Tone, Color and Texture tools, and anything you like can be saved as your own look
 - **14 to 270 mm** : slide the lens pill or pinch. Past 2×, shots get rebuilt with multi-frame super-resolution, using the tiny movements of your hands between frames. Real extra detail, not just a crop. On Pro iPhones, zoom crops the telephoto once you're past its focal length
 - **Drive modes** : 3 and 5-shot bursts and brackets, a 3s/10s self timer, and for those the camera waits until the phone stops moving before it fires
-- **Manual controls** (opt-in, in Settings) : shutter, ISO, aperture on lenses that have one, and focus. Leave any of them on Auto and the camera handles the rest
+- **Manual controls** : shutter, ISO, aperture on lenses that have one, and focus. Leave any of them on Auto and the camera handles the rest
 - **Everywhere iOS lets a camera be** : Lock Screen camera, Control Center controls, Camera Control (light double-press for zoom, looks...)
 - Export to HEIC or JPEG at the size you want, optionally with the RAW attached, and a QR/barcode scanner in the viewfinder because why not
 
@@ -40,7 +40,7 @@ open App/Crepuscule.xcodeproj
 ```
 
 ## Limitations
-- iPhone only, and portrait only
+- iPhone only
 - Not on the App Store (yet ?)
 
 ## Credits
