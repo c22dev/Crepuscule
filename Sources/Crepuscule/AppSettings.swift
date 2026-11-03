@@ -41,22 +41,15 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var exportQuality: Float = 1
     public var exportFormat: Format = .heic
     public var autoExport = false
-    public var saveRawsPermanently = true
     public var useDiskCache = true
     public var aspectRatioPreset = AspectRatioPreset.native
-    public var customAspectWidth = 16.0
-    public var customAspectHeight = 9.0
     public var highlightRetentionStops = 2.0
 
     public init() {}
 
-    public static let exportSizeRange = 720...6144
     private static let key = "Crepuscule.AppSettings"
 
     public var exportFormatForEncoder: ExportFormat { exportFormat == .heic ? .heic : .jpeg }
-    public mutating func setCustomExportSize(_ pixels: Int) {
-        exportLongSide = min(max(pixels, Self.exportSizeRange.lowerBound), Self.exportSizeRange.upperBound)
-    }
 
     public static func load(from defaults: UserDefaults = .standard) -> AppSettings {
         guard let data = defaults.data(forKey: key), let s = try? JSONDecoder().decode(AppSettings.self, from: data) else { return AppSettings() }
