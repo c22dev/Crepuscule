@@ -62,7 +62,7 @@ public final class ColorPipelineRenderer {
             }
             let options = MTLCompileOptions()
             options.languageVersion = .version3_1
-            self.library = try device.makeLibrary(source: String(contentsOf: url), options: options)
+            self.library = try device.makeLibrary(source: String(contentsOf: url, encoding: .utf8), options: options)
         }
         ciContext = CIContext(mtlDevice: device)
     }
@@ -336,7 +336,7 @@ public final class ColorPipelineRenderer {
     }
 
     static func parseCube(url: URL) throws -> (size: Int, values: [Float]) {
-        let text = try String(contentsOf: url)
+        let text = try String(contentsOf: url, encoding: .utf8)
         var size = 0
         var values: [Float] = []
         for line in text.split(whereSeparator: \.isNewline) {

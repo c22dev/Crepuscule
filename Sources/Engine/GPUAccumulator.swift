@@ -23,7 +23,7 @@ final class GPUAccumulator: @unchecked Sendable {
         options.languageVersion = .version3_1
         // no fast math or it stops matching the cpu
         if #available(macOS 15, iOS 18, *) { options.mathMode = .safe } else { options.fastMathEnabled = false }
-        let library = try device.makeLibrary(source: String(contentsOf: url), options: options)
+        let library = try device.makeLibrary(source: String(contentsOf: url, encoding: .utf8), options: options)
         func pso(_ name: String) throws -> MTLComputePipelineState {
             guard let f = library.makeFunction(name: name) else { throw PipelineError.shader("missing \(name)") }
             return try device.makeComputePipelineState(function: f)
