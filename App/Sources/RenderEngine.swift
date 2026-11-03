@@ -35,6 +35,8 @@ actor RenderEngine {
         return (r, l)
     }
 
+    func prewarm() { if let (r, _) = try? ready() { r.prewarmPipelines() } }
+
     func makeLiveGrader() throws -> LiveGrader {
         let (r, l) = try ready()
         return LiveGrader(renderer: try ColorPipelineRenderer(device: r.device, library: r.library), lut: l)
@@ -65,7 +67,6 @@ actor RenderEngine {
         return try r.cgImage(r.grade(framed, grade: grade, baselineStops: p.baselineStops, lut: l, seed: seed))
     }
 
-    // size of the framed full-res image, same arithmetic as applyGeometry (only used for zoom limits)
     func framedSize(url: URL, grade: Grade, useDisk: Bool) throws -> CGSize? {
         let p = try proxy(url, useDisk: useDisk)
         var w = Double(p.fullWidth), h = Double(p.fullHeight)
@@ -123,8 +124,7 @@ actor RenderEngine {
     func clearCache() { proxyCache.removeAll(); memory.removeAll() }
 }
 
-// full-res render for zooming in the viewer, on its own renderer so it never holds up page previews.
-// It is the exact call an original-size export makes, so what you see zoomed in is the export, byte for byte.
+// same call as an original size export so zoomed in is exactly the export
 actor DetailEngine {
     static let shared = DetailEngine()
 
@@ -154,7 +154,11 @@ actor DetailEngine {
         return image
     }
 
+    func prewarm() { if let (r, _) = try? ready() { r.prewarmPipelines() } }
+
     func release() { cached = nil }
+    // keeps the render of the photo on screen (can be a fresh prefetch)
+    func release(keeping url: URL) { if cached?.key.url != url { cached = nil } }
     func release(_ url: URL) { if cached?.key.url == url { cached = nil } }
 
     func setVignette(_ amount: Double) {

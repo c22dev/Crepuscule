@@ -1,5 +1,6 @@
 // Crepuscule - CrepusculeApp.swift
 // Constantin Clerc (c22dev) - 0.1
+import Crepuscule
 import LockedCameraCapture
 import SwiftUI
 import UIKit
@@ -42,6 +43,12 @@ struct RootView: View {
                 #else
                 await camera.start()
                 #endif
+                // compile shaders, build pipelines and load the lut once the camera is up, so the first burst / photo / zoom dont wait on it
+                Task.detached(priority: .utility) {
+                    ShaderWarmup.mergeKernels()
+                    await RenderEngine.shared.prewarm()
+                    await DetailEngine.shared.prewarm()
+                }
             }
             .task {
                 for await _ in LockedCameraCaptureManager.shared.sessionContentUpdates where UIApplication.shared.applicationState == .active {
