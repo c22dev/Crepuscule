@@ -38,20 +38,9 @@ cd Crepuscule
 mkdir -p Tests/CrepusculeTests
 open App/Crepuscule.xcodeproj
 ```
-The `Tests` folder is gitignored, but SwiftPM refuses to build without it (it complains about overlapping sources), hence the `mkdir`. In Xcode, pick your team under Signing & Capabilities for the three targets (app, widgets, Lock Screen camera), select the **CrepusculeApp** scheme and run it on your phone. The `Crepuscule` scheme is only the Swift package, it doesn't build an app
-
-The Xcode project is generated from `App/project.yml` with [XcodeGen](https://github.com/yonaskolb/XcodeGen), if you need to regenerate it : `cd App && xcodegen generate`
-
-## On your Mac
-The whole film pipeline is a Swift package, so it also runs on macOS. `crepuscule-render` develops any DNG the same way the app does (same `mkdir -p Tests/CrepusculeTests` as above first) :
-```
-swift run -c release crepuscule-render photo.dng out.jpg --lut App/Resources/PrintLUT.cube --preset default --quality 0.9
-```
-Presets are `default`, `optical`, `no-halation` and `bw`, or pass your own grade with `--grade grade.json`. `--long-side` resizes, `--seed` pins the grain so two renders come out identical
 
 ## Limitations
 - iPhone only, and portrait only
-- Super-resolution and merging run on the CPU for now, so big bursts take a few seconds to finish after the shot (the photo shows up right away and gets swapped once the merge is done)
 - Not on the App Store (yet ?)
 
 ## Credits
