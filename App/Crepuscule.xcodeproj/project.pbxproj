@@ -1,0 +1,723 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		05449163B98B4E8E9F7EB87A /* EditScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5C712F097A45A05A7D1DFC8 /* EditScreen.swift */; };
+		1B6F246BAA67591C4AA71C81 /* LockedShot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD9315953D304ED69E62C5E /* LockedShot.swift */; };
+		27C59864F4AF0423BB359074 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C533577625762D67FFBEF8E0 /* CameraModel.swift */; };
+		2AB53440C29D30A12CED5BF5 /* CaptureIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4EE5B57AE8BEFC505EF25C /* CaptureIntents.swift */; };
+		319D646CB0A62BF14362CF1F /* Library.swift in Sources */ = {isa = PBXBuildFile; fileRef = A50FA3696D233F15E1B0889A /* Library.swift */; };
+		3678AFF62F5F394B4D4A15B7 /* CrepusculeWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3FA83503DB4FEF5386F1E2BC /* CrepusculeWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		36AF2318210671C9C986579D /* IntentRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53A2AEEBB86A7DFF01052611 /* IntentRouter.swift */; };
+		395E6F95C847ABC1943C1BD7 /* Crepuscule in Frameworks */ = {isa = PBXBuildFile; productRef = E6698588DAF994BD70B9522F /* Crepuscule */; };
+		442DAEFDF5DA95B86DD75832 /* CrepusculeLockedCapture.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 11B18EFD0E4D72BF3A453713 /* CrepusculeLockedCapture.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		446B640E3EB5D26A561D3C2A /* CameraControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 570DD082E0566D981E7E08A0 /* CameraControls.swift */; };
+		48BCB05E58DCB6858B6B0627 /* LockedShot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD9315953D304ED69E62C5E /* LockedShot.swift */; };
+		5A56BFBABFCBE77F2E0CB311 /* RenderEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 214AEDE9732E66C3281B0FE5 /* RenderEngine.swift */; };
+		5C9575DCB9059B0705A695CF /* Crepuscule in Frameworks */ = {isa = PBXBuildFile; productRef = 7C59C8A64225A642870CB3A4 /* Crepuscule */; };
+		6259188576D897865B8AEEAA /* LibraryScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E61788DA3FE29FF0859094D /* LibraryScreen.swift */; };
+		65C1EFD934A57955CA0A3B84 /* CrepusculeControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 426D6277040F0CFD74832446 /* CrepusculeControls.swift */; };
+		6F9D266342873FD0DFC73F5F /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56951F2F9164E869A46C1079 /* SettingsScreen.swift */; };
+		790E0DFAB366BA5A42171C07 /* Viewfinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 091A4E0C4D4A7C2C8EFABD6D /* Viewfinder.swift */; };
+		1A7E0C0D2B3C4D5E6F708193 /* IntroductionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A7E0C0D2B3C4D5E6F708192 /* IntroductionView.swift */; };
+		8106BB8737286BE73948BECE /* PhotoPager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A4E3233863A5AD85DF65D87 /* PhotoPager.swift */; };
+		A67B37C0ED3D432D4383FB52 /* LockedShot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD9315953D304ED69E62C5E /* LockedShot.swift */; };
+		AB6AD065504C43E2749A6A39 /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FED7960963153E604D1A867 /* CameraView.swift */; };
+		AE3EA1C92B6ECD3BE4AC86F4 /* LockedCaptureExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 736082F7692BCB83D648243D /* LockedCaptureExtension.swift */; };
+		B32A77B456E047892C834EB5 /* PrintLUT.cube in Resources */ = {isa = PBXBuildFile; fileRef = 00CC54AC84B18B080A078CFE /* PrintLUT.cube */; };
+		B5C1EEBF6E72802ACBF540AB /* CrepusculeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87923FDA719A6117F8CDBE32 /* CrepusculeApp.swift */; };
+		C604D4130D7C2183CA79D860 /* CaptureIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4EE5B57AE8BEFC505EF25C /* CaptureIntents.swift */; };
+		D4BB5D5B015F1A15F4D1E1D8 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FF92C6EB59A9CAC113B8D73 /* Theme.swift */; };
+		EDEC95E4151E6EB2AB5C5658 /* CaptureIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4EE5B57AE8BEFC505EF25C /* CaptureIntents.swift */; };
+		F2649A55E4C15FD471B0E854 /* LockedImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37400FCD3057839C129A3B0A /* LockedImport.swift */; };
+		FA18A27C7972AD2B9F3F6330 /* DemoCamera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EF3E5A5CFDD2912CD3B99B7 /* DemoCamera.swift */; };
+		FBC3BC7F00EAF96F133E91E4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3BF3BF895A8F0FC56F89572F /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		2CBDE64B831C9E79665C301B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9534ADF8161C9E2A5F8EECC7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C7B60F855482AFDE00DC3FA5;
+			remoteInfo = CrepusculeLockedCapture;
+		};
+		954EB3D1A2CAA4C2D9D79FC7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9534ADF8161C9E2A5F8EECC7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F12604AC18552BCBF8468DBD;
+			remoteInfo = CrepusculeWidgets;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		06BAB29730F16DA68D4F3645 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				3678AFF62F5F394B4D4A15B7 /* CrepusculeWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C55D159574371B5AA7688D43 /* Embed ExtensionKit Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				442DAEFDF5DA95B86DD75832 /* CrepusculeLockedCapture.appex in Embed ExtensionKit Extensions */,
+			);
+			name = "Embed ExtensionKit Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		00CC54AC84B18B080A078CFE /* PrintLUT.cube */ = {isa = PBXFileReference; path = PrintLUT.cube; sourceTree = "<group>"; };
+		1A7E0C0D2B3C4D5E6F708192 /* IntroductionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroductionView.swift; sourceTree = "<group>"; };
+		091A4E0C4D4A7C2C8EFABD6D /* Viewfinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Viewfinder.swift; sourceTree = "<group>"; };
+		0A4E3233863A5AD85DF65D87 /* PhotoPager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPager.swift; sourceTree = "<group>"; };
+		11B18EFD0E4D72BF3A453713 /* CrepusculeLockedCapture.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = CrepusculeLockedCapture.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		214AEDE9732E66C3281B0FE5 /* RenderEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderEngine.swift; sourceTree = "<group>"; };
+		37400FCD3057839C129A3B0A /* LockedImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockedImport.swift; sourceTree = "<group>"; };
+		3BF3BF895A8F0FC56F89572F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		3EF3E5A5CFDD2912CD3B99B7 /* DemoCamera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoCamera.swift; sourceTree = "<group>"; };
+		3FA83503DB4FEF5386F1E2BC /* CrepusculeWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = CrepusculeWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		3FF92C6EB59A9CAC113B8D73 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		426D6277040F0CFD74832446 /* CrepusculeControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrepusculeControls.swift; sourceTree = "<group>"; };
+		53A2AEEBB86A7DFF01052611 /* IntentRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentRouter.swift; sourceTree = "<group>"; };
+		56951F2F9164E869A46C1079 /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
+		570DD082E0566D981E7E08A0 /* CameraControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraControls.swift; sourceTree = "<group>"; };
+		736082F7692BCB83D648243D /* LockedCaptureExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockedCaptureExtension.swift; sourceTree = "<group>"; };
+		7CD9315953D304ED69E62C5E /* LockedShot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockedShot.swift; sourceTree = "<group>"; };
+		87923FDA719A6117F8CDBE32 /* CrepusculeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrepusculeApp.swift; sourceTree = "<group>"; };
+		8CCA8CA2C19ED8621FEE1A4A /* Coquelicot */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Coquelicot; path = ..; sourceTree = SOURCE_ROOT; };
+		94095504BB3C2D61274CA70C /* CrepusculeApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = CrepusculeApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9E4EE5B57AE8BEFC505EF25C /* CaptureIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureIntents.swift; sourceTree = "<group>"; };
+		9E61788DA3FE29FF0859094D /* LibraryScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryScreen.swift; sourceTree = "<group>"; };
+		9FED7960963153E604D1A867 /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
+		A50FA3696D233F15E1B0889A /* Library.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Library.swift; sourceTree = "<group>"; };
+		C533577625762D67FFBEF8E0 /* CameraModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModel.swift; sourceTree = "<group>"; };
+		C5C712F097A45A05A7D1DFC8 /* EditScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditScreen.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		15886439E5A6915AE09519F4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				395E6F95C847ABC1943C1BD7 /* Crepuscule in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		330475DA5346F9BD552A4029 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5C9575DCB9059B0705A695CF /* Crepuscule in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0148EDF76B818DB020D2AC2B /* LUT */ = {
+			isa = PBXGroup;
+			children = (
+				00CC54AC84B18B080A078CFE /* PrintLUT.cube */,
+			);
+			name = LUT;
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		5470D693D79358FF38881453 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				94095504BB3C2D61274CA70C /* CrepusculeApp.app */,
+				11B18EFD0E4D72BF3A453713 /* CrepusculeLockedCapture.appex */,
+				3FA83503DB4FEF5386F1E2BC /* CrepusculeWidgets.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		6FF13818CF92ED555B1AF13E /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				8CCA8CA2C19ED8621FEE1A4A /* Coquelicot */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		70E7505FA8EC63DAA9DFC5A4 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				3BF3BF895A8F0FC56F89572F /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		7D8EB69510781EBE27E0830F /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				9E4EE5B57AE8BEFC505EF25C /* CaptureIntents.swift */,
+				7CD9315953D304ED69E62C5E /* LockedShot.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		86216FF39191C2BBA3F02CD7 = {
+			isa = PBXGroup;
+			children = (
+				0148EDF76B818DB020D2AC2B /* LUT */,
+				BFC77C7A8566EE39F2A43E76 /* LockedCapture */,
+				6FF13818CF92ED555B1AF13E /* Packages */,
+				70E7505FA8EC63DAA9DFC5A4 /* Resources */,
+				7D8EB69510781EBE27E0830F /* Shared */,
+				9010C6E7B072DE446A86DDDC /* Sources */,
+				F08C4F84BA41C44668F05283 /* WidgetExtension */,
+				5470D693D79358FF38881453 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		9010C6E7B072DE446A86DDDC /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				570DD082E0566D981E7E08A0 /* CameraControls.swift */,
+				C533577625762D67FFBEF8E0 /* CameraModel.swift */,
+				9FED7960963153E604D1A867 /* CameraView.swift */,
+				87923FDA719A6117F8CDBE32 /* CrepusculeApp.swift */,
+				3EF3E5A5CFDD2912CD3B99B7 /* DemoCamera.swift */,
+				C5C712F097A45A05A7D1DFC8 /* EditScreen.swift */,
+				53A2AEEBB86A7DFF01052611 /* IntentRouter.swift */,
+				1A7E0C0D2B3C4D5E6F708192 /* IntroductionView.swift */,
+				A50FA3696D233F15E1B0889A /* Library.swift */,
+				9E61788DA3FE29FF0859094D /* LibraryScreen.swift */,
+				37400FCD3057839C129A3B0A /* LockedImport.swift */,
+				0A4E3233863A5AD85DF65D87 /* PhotoPager.swift */,
+				214AEDE9732E66C3281B0FE5 /* RenderEngine.swift */,
+				56951F2F9164E869A46C1079 /* SettingsScreen.swift */,
+				3FF92C6EB59A9CAC113B8D73 /* Theme.swift */,
+				091A4E0C4D4A7C2C8EFABD6D /* Viewfinder.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		BFC77C7A8566EE39F2A43E76 /* LockedCapture */ = {
+			isa = PBXGroup;
+			children = (
+				736082F7692BCB83D648243D /* LockedCaptureExtension.swift */,
+			);
+			path = LockedCapture;
+			sourceTree = "<group>";
+		};
+		F08C4F84BA41C44668F05283 /* WidgetExtension */ = {
+			isa = PBXGroup;
+			children = (
+				426D6277040F0CFD74832446 /* CrepusculeControls.swift */,
+			);
+			path = WidgetExtension;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C7B60F855482AFDE00DC3FA5 /* CrepusculeLockedCapture */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 574EDD43C2A86764B8A05DFB /* Build configuration list for PBXNativeTarget "CrepusculeLockedCapture" */;
+			buildPhases = (
+				6EC9896F3283136423A690BD /* Sources */,
+				15886439E5A6915AE09519F4 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CrepusculeLockedCapture;
+			packageProductDependencies = (
+				E6698588DAF994BD70B9522F /* Crepuscule */,
+			);
+			productName = CrepusculeLockedCapture;
+			productReference = 11B18EFD0E4D72BF3A453713 /* CrepusculeLockedCapture.appex */;
+			productType = "com.apple.product-type.extensionkit-extension";
+		};
+		D2E1A07BF904F2E89AA5B407 /* CrepusculeApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B866735C331E3F63F584B4A9 /* Build configuration list for PBXNativeTarget "CrepusculeApp" */;
+			buildPhases = (
+				865A76E71629D52CB3A35A7E /* Sources */,
+				69EF6933FCFA3890C7BBC7DB /* Resources */,
+				330475DA5346F9BD552A4029 /* Frameworks */,
+				06BAB29730F16DA68D4F3645 /* Embed Foundation Extensions */,
+				C55D159574371B5AA7688D43 /* Embed ExtensionKit Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DE10B1889FBB100020A733A2 /* PBXTargetDependency */,
+				C8414DCD44A62E4CC8B0CE15 /* PBXTargetDependency */,
+			);
+			name = CrepusculeApp;
+			packageProductDependencies = (
+				7C59C8A64225A642870CB3A4 /* Crepuscule */,
+			);
+			productName = CrepusculeApp;
+			productReference = 94095504BB3C2D61274CA70C /* CrepusculeApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+		F12604AC18552BCBF8468DBD /* CrepusculeWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A5107505137EAC35196A29C1 /* Build configuration list for PBXNativeTarget "CrepusculeWidgets" */;
+			buildPhases = (
+				F207ECDB4CEC81D17DA36144 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CrepusculeWidgets;
+			packageProductDependencies = (
+			);
+			productName = CrepusculeWidgets;
+			productReference = 3FA83503DB4FEF5386F1E2BC /* CrepusculeWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		9534ADF8161C9E2A5F8EECC7 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					C7B60F855482AFDE00DC3FA5 = {
+						DevelopmentTeam = P69N7G8867;
+						ProvisioningStyle = Automatic;
+					};
+					D2E1A07BF904F2E89AA5B407 = {
+						DevelopmentTeam = P69N7G8867;
+						ProvisioningStyle = Automatic;
+					};
+					F12604AC18552BCBF8468DBD = {
+						DevelopmentTeam = P69N7G8867;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = C16ECC4566A9761FB2608D53 /* Build configuration list for PBXProject "Crepuscule" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 86216FF39191C2BBA3F02CD7;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F357C1F1BE050AAF037F409A /* XCLocalSwiftPackageReference ".." */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 5470D693D79358FF38881453 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D2E1A07BF904F2E89AA5B407 /* CrepusculeApp */,
+				F12604AC18552BCBF8468DBD /* CrepusculeWidgets */,
+				C7B60F855482AFDE00DC3FA5 /* CrepusculeLockedCapture */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		69EF6933FCFA3890C7BBC7DB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FBC3BC7F00EAF96F133E91E4 /* Assets.xcassets in Resources */,
+				B32A77B456E047892C834EB5 /* PrintLUT.cube in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		6EC9896F3283136423A690BD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2AB53440C29D30A12CED5BF5 /* CaptureIntents.swift in Sources */,
+				AE3EA1C92B6ECD3BE4AC86F4 /* LockedCaptureExtension.swift in Sources */,
+				A67B37C0ED3D432D4383FB52 /* LockedShot.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		865A76E71629D52CB3A35A7E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				446B640E3EB5D26A561D3C2A /* CameraControls.swift in Sources */,
+				27C59864F4AF0423BB359074 /* CameraModel.swift in Sources */,
+				AB6AD065504C43E2749A6A39 /* CameraView.swift in Sources */,
+				EDEC95E4151E6EB2AB5C5658 /* CaptureIntents.swift in Sources */,
+				B5C1EEBF6E72802ACBF540AB /* CrepusculeApp.swift in Sources */,
+				FA18A27C7972AD2B9F3F6330 /* DemoCamera.swift in Sources */,
+				05449163B98B4E8E9F7EB87A /* EditScreen.swift in Sources */,
+				36AF2318210671C9C986579D /* IntentRouter.swift in Sources */,
+				319D646CB0A62BF14362CF1F /* Library.swift in Sources */,
+				6259188576D897865B8AEEAA /* LibraryScreen.swift in Sources */,
+				F2649A55E4C15FD471B0E854 /* LockedImport.swift in Sources */,
+				48BCB05E58DCB6858B6B0627 /* LockedShot.swift in Sources */,
+				8106BB8737286BE73948BECE /* PhotoPager.swift in Sources */,
+				5A56BFBABFCBE77F2E0CB311 /* RenderEngine.swift in Sources */,
+				6F9D266342873FD0DFC73F5F /* SettingsScreen.swift in Sources */,
+				D4BB5D5B015F1A15F4D1E1D8 /* Theme.swift in Sources */,
+				790E0DFAB366BA5A42171C07 /* Viewfinder.swift in Sources */,
+				1A7E0C0D2B3C4D5E6F708193 /* IntroductionView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F207ECDB4CEC81D17DA36144 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C604D4130D7C2183CA79D860 /* CaptureIntents.swift in Sources */,
+				65C1EFD934A57955CA0A3B84 /* CrepusculeControls.swift in Sources */,
+				1B6F246BAA67591C4AA71C81 /* LockedShot.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C8414DCD44A62E4CC8B0CE15 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C7B60F855482AFDE00DC3FA5 /* CrepusculeLockedCapture */;
+			targetProxy = 2CBDE64B831C9E79665C301B /* PBXContainerItemProxy */;
+		};
+		DE10B1889FBB100020A733A2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F12604AC18552BCBF8468DBD /* CrepusculeWidgets */;
+			targetProxy = 954EB3D1A2CAA4C2D9D79FC7 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		286BE6A3CADBA43A135BA364 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = P69N7G8867;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 0.1;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		288C5B393225A869A9A8CFF6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info/Widgets.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = ch.cclerc.crepuscule.widgets;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		3E01106BB5ACE897E412CA2C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = P69N7G8867;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 0.1;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		886EFC5DE1C804D95EAB0DAB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info/LockedCapture.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = ch.cclerc.crepuscule.lockedcapture;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		9A44DC6B9DFD0035B70E77A5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info/App.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Crepuscule;
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = NO;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Crepuscule shoots RAW photos with the camera.";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Crepuscule waits for the phone to settle before timed and bracketed shots.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Crepuscule saves your finished photos to Photos.";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = ch.cclerc.crepuscule;
+				PRODUCT_MODULE_NAME = CrepusculeApp;
+				PRODUCT_NAME = Crepuscule;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) CREPUSCULE_APP";
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B4429AC43CAEA861D8640860 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info/Widgets.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = ch.cclerc.crepuscule.widgets;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BF0398837967C4A0B6BDBCDB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info/App.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Crepuscule;
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = NO;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Crepuscule shoots RAW photos with the camera.";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Crepuscule waits for the phone to settle before timed and bracketed shots.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Crepuscule saves your finished photos to Photos.";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = ch.cclerc.crepuscule;
+				PRODUCT_MODULE_NAME = CrepusculeApp;
+				PRODUCT_NAME = Crepuscule;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) CREPUSCULE_APP";
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F1E2DA4AC5403BB9A7AB2039 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info/LockedCapture.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = ch.cclerc.crepuscule.lockedcapture;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		574EDD43C2A86764B8A05DFB /* Build configuration list for PBXNativeTarget "CrepusculeLockedCapture" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F1E2DA4AC5403BB9A7AB2039 /* Debug */,
+				886EFC5DE1C804D95EAB0DAB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A5107505137EAC35196A29C1 /* Build configuration list for PBXNativeTarget "CrepusculeWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B4429AC43CAEA861D8640860 /* Debug */,
+				288C5B393225A869A9A8CFF6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B866735C331E3F63F584B4A9 /* Build configuration list for PBXNativeTarget "CrepusculeApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BF0398837967C4A0B6BDBCDB /* Debug */,
+				9A44DC6B9DFD0035B70E77A5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C16ECC4566A9761FB2608D53 /* Build configuration list for PBXProject "Crepuscule" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3E01106BB5ACE897E412CA2C /* Debug */,
+				286BE6A3CADBA43A135BA364 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		F357C1F1BE050AAF037F409A /* XCLocalSwiftPackageReference ".." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ..;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		7C59C8A64225A642870CB3A4 /* Crepuscule */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Crepuscule;
+		};
+		E6698588DAF994BD70B9522F /* Crepuscule */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Crepuscule;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 9534ADF8161C9E2A5F8EECC7 /* Project object */;
+}
