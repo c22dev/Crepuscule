@@ -25,6 +25,16 @@ public struct BurstMergeResult: Sendable {
     }
 }
 
+public typealias MergeProgress = @Sendable (Double) -> Void
+
+final class ProgressSteps {
+    let total: Int
+    let report: MergeProgress?
+    var done = 0
+    init(total: Int, report: MergeProgress?) { self.total = max(total, 1); self.report = report }
+    func step() { done += 1; report?(min(Double(done) / Double(total), 1)) }
+}
+
 public enum BurstMerger {
     public static let algorithmVersion = 3
     public static let markerPrefix = "crepuscule-merge;"
@@ -467,26 +477,38 @@ public enum BurstMerger {
 
     static func finalize(base: BurstFrame, confidence conf: Plane, acc: Accumulator, ghost: [Float]?, noise: Noise,
                          maxScale: Float) -> (values: [Float], marked: [Bool]) {
+        acc.weight.withUnsafeBufferPointer { w in acc.value.withUnsafeBufferPointer { v in
+            finalize(base: base, confidence: conf, weight: w, value: v, ghost: ghost, noise: noise, maxScale: maxScale)
+        } }
+    }
+
+    static func finalize(base: BurstFrame, confidence conf: Plane, weight: UnsafeBufferPointer<Float>, value: UnsafeBufferPointer<Float>,
+                         ghost: [Float]?, noise: Noise, maxScale: Float) -> (values: [Float], marked: [Bool]) {
         let W = base.cfa.width, H = base.cfa.height, R = base.range
         var out = [Float](repeating: 0, count: W * H)
         var marked = [Bool](repeating: false, count: W * H)
         let sd = ghost == nil ? 0 : sqrt(maxScale * maxScale * noise.b + max(R, 0) * maxScale * noise.a)
-        for y in 0..<H { for x in 0..<W {
-            let i = y * W + x
-            let r = Float(base.cfa.data[i]) - base.cfa.black
-            let c = conf.v[(y >> 1) * conf.width + (x >> 1)]
-            let total = c + acc.weight[i]
-            let m = total > 0.02 ? (acc.value[i] + r * c) / total : r
-            var g: Float = -1
-            if let ghost, ghost[i] > 0 { g = ghost[i] }
-            let stuck = c < 0.5 && r >= 0.9 * R && m >= 0.9 * R && m < 1.05 * R
-            if !stuck || (g < 1.05 * R + sd && g >= 0.9 * R - 2 * sd) {
-                out[i] = m
-            } else {
-                out[i] = min(max(g, r), R * maxScale)
-                marked[i] = true
+        out.withUnsafeMutableBufferPointer { op in marked.withUnsafeMutableBufferPointer { mp in
+        base.cfa.data.withUnsafeBufferPointer { d in conf.v.withUnsafeBufferPointer { cv in
+            DispatchQueue.concurrentPerform(iterations: H) { y in
+                for x in 0..<W {
+                    let i = y * W + x
+                    let r = Float(d[i]) - base.cfa.black
+                    let c = cv[(y >> 1) * conf.width + (x >> 1)]
+                    let total = c + weight[i]
+                    let m = total > 0.02 ? (value[i] + r * c) / total : r
+                    var g: Float = -1
+                    if let ghost, ghost[i] > 0 { g = ghost[i] }
+                    let stuck = c < 0.5 && r >= 0.9 * R && m >= 0.9 * R && m < 1.05 * R
+                    if !stuck || (g < 1.05 * R + sd && g >= 0.9 * R - 2 * sd) {
+                        op[i] = m
+                    } else {
+                        op[i] = min(max(g, r), R * maxScale)
+                        mp[i] = true
+                    }
+                }
             }
-        } }
+        } } } }
         for y in stride(from: 0, to: H - 1, by: 2) { for x in stride(from: 0, to: W - 1, by: 2) {
             guard conf.v[(y >> 1) * conf.width + (x >> 1)] < 0.5 else { continue }
             let idx = [y * W + x, y * W + x + 1, (y + 1) * W + x, (y + 1) * W + x + 1]
@@ -511,53 +533,70 @@ public enum BurstMerger {
         let W = base.cfa.width, H = base.cfa.height, R = base.range
         let bw = W / 2, bh = H / 2
         let gains = base.cfa.gains.map { $0 > 0 ? $0 : 1 }
-        func gain(_ x: Int, _ y: Int) -> Float { gains[base.cfa.color(x, y)] }
+        let pattern = base.cfa.pattern
+        let g00 = gains[pattern[0]], g01 = gains[pattern[1]], g10 = gains[pattern[2]], g11 = gains[pattern[3]]
         var level = [Float](repeating: 0, count: bw * bh)
         var mask = [Bool](repeating: false, count: bw * bh)
-        for by in 0..<bh { for bx in 0..<bw {
-            var m: Float = 1e30, any = false
-            for (dx, dy) in [(0, 0), (1, 0), (0, 1), (1, 1)] {
-                let x = 2 * bx + dx, y = 2 * by + dy, i = y * W + x
-                m = min(m, max(out[i], R) * gain(x, y))
-                if marked[i] { any = true }
-            }
-            level[by * bw + bx] = m; mask[by * bw + bx] = any
+        out.withUnsafeMutableBufferPointer { o in marked.withUnsafeBufferPointer { mk in
+            level.withUnsafeMutableBufferPointer { lv in mask.withUnsafeMutableBufferPointer { ms in
+                DispatchQueue.concurrentPerform(iterations: bh) { by in
+                    for bx in 0..<bw {
+                        let i0 = 2 * by * W + 2 * bx, i1 = i0 + 1, i2 = i0 + W, i3 = i2 + 1
+                        var m: Float = 1e30
+                        m = min(m, max(o[i0], R) * g00)
+                        m = min(m, max(o[i1], R) * g01)
+                        m = min(m, max(o[i2], R) * g10)
+                        m = min(m, max(o[i3], R) * g11)
+                        lv[by * bw + bx] = m
+                        ms[by * bw + bx] = mk[i0] || mk[i1] || mk[i2] || mk[i3]
+                    }
+                }
+            } }
         } }
         for _ in 0..<3 {
             let src = level
-            for by in 0..<bh { for bx in 0..<bw where src[by * bw + bx] > R {
-                var sum: Float = 0, n = 0
-                for ny in (by - 1)...(by + 1) where ny >= 0 && ny < bh { for nx in (bx - 1)...(bx + 1) where nx >= 0 && nx < bw && src[ny * bw + nx] > R {
-                    sum += src[ny * bw + nx]; n += 1
-                } }
-                if n > 0 { level[by * bw + bx] = sum / Float(n) }
+            src.withUnsafeBufferPointer { sp in level.withUnsafeMutableBufferPointer { lv in
+                DispatchQueue.concurrentPerform(iterations: bh) { by in
+                    for bx in 0..<bw where sp[by * bw + bx] > R {
+                        var sum: Float = 0, n = 0
+                        for ny in (by - 1)...(by + 1) where ny >= 0 && ny < bh { for nx in (bx - 1)...(bx + 1) where nx >= 0 && nx < bw && sp[ny * bw + nx] > R {
+                            sum += sp[ny * bw + nx]; n += 1
+                        } }
+                        if n > 0 { lv[by * bw + bx] = sum / Float(n) }
+                    }
+                }
             } }
         }
-        for by in 0..<bh { for bx in 0..<bw where mask[by * bw + bx] {
-            let L = level[by * bw + bx]
-            let t = min(max((L / ceiling - 0.8) / 0.15, 0), 1)
-            let s = t * t * (3 - 2 * t)
-            for (dx, dy) in [(0, 0), (1, 0), (0, 1), (1, 1)] {
-                let x = 2 * bx + dx, y = 2 * by + dy, i = y * W + x
-                var target = (L + s * (ceiling - L)) / gain(x, y)
-                if !marked[i], out[i] <= target { target = out[i] }
-                out[i] = target
-            }
-        } }
-        for by in 0..<bh { for bx in 0..<bw {
-            var v = [Float](repeating: 0, count: 4), peak: Float = 0
-            let pos = [(0, 0), (1, 0), (0, 1), (1, 1)]
-            for (k, (dx, dy)) in pos.enumerated() {
-                let x = 2 * bx + dx, y = 2 * by + dy
-                v[k] = out[y * W + x] * gain(x, y); peak = max(peak, v[k])
-            }
-            guard peak > R else { continue }
-            let t = min((peak - R) / (R * 3), 1)
-            let s = t * t * (3 - 2 * t)
-            for (k, (dx, dy)) in pos.enumerated() {
-                let x = 2 * bx + dx, y = 2 * by + dy
-                out[y * W + x] = (v[k] + s * (peak - v[k])) / gain(x, y)
-            }
+        out.withUnsafeMutableBufferPointer { o in marked.withUnsafeBufferPointer { mk in
+            level.withUnsafeBufferPointer { lv in mask.withUnsafeBufferPointer { ms in
+                DispatchQueue.concurrentPerform(iterations: bh) { by in
+                    for bx in 0..<bw {
+                        let i0 = 2 * by * W + 2 * bx
+                        let idx = (i0, i0 + 1, i0 + W, i0 + W + 1), gs = (g00, g01, g10, g11)
+                        if ms[by * bw + bx] {
+                            let L = lv[by * bw + bx]
+                            let t = min(max((L / ceiling - 0.8) / 0.15, 0), 1)
+                            let s = t * t * (3 - 2 * t)
+                            func apply(_ o: UnsafeMutableBufferPointer<Float>, _ mk: UnsafeBufferPointer<Bool>, _ i: Int, _ g: Float) {
+                                var target = (L + s * (ceiling - L)) / g
+                                if !mk[i], o[i] <= target { target = o[i] }
+                                o[i] = target
+                            }
+                            apply(o, mk, idx.0, gs.0); apply(o, mk, idx.1, gs.1); apply(o, mk, idx.2, gs.2); apply(o, mk, idx.3, gs.3)
+                        }
+                        let v0 = o[idx.0] * gs.0, v1 = o[idx.1] * gs.1, v2 = o[idx.2] * gs.2, v3 = o[idx.3] * gs.3
+                        var peak: Float = 0
+                        peak = max(peak, v0); peak = max(peak, v1); peak = max(peak, v2); peak = max(peak, v3)
+                        guard peak > R else { continue }
+                        let t = min((peak - R) / (R * 3), 1)
+                        let s = t * t * (3 - 2 * t)
+                        o[idx.0] = (v0 + s * (peak - v0)) / gs.0
+                        o[idx.1] = (v1 + s * (peak - v1)) / gs.1
+                        o[idx.2] = (v2 + s * (peak - v2)) / gs.2
+                        o[idx.3] = (v3 + s * (peak - v3)) / gs.3
+                    }
+                }
+            } }
         } }
     }
 
@@ -572,7 +611,19 @@ public enum BurstMerger {
         return n > 0 ? sum / Float(n) : 0
     }
 
-    public static func merge(_ frames: [BurstFrame]) throws -> BurstMergeResult {
+    public static func merge(_ frames: [BurstFrame], progress: MergeProgress? = nil) throws -> BurstMergeResult {
+        try merge(frames, steps: ProgressSteps(total: frames.count, report: progress))
+    }
+
+    static func merge(_ frames: [BurstFrame], steps: ProgressSteps) throws -> BurstMergeResult {
+        // gpu first, cpu fallback bc ios refuses gpu work in the background
+        let start = steps.done
+        if let gpu = GPUAccumulator.shared, let r = try? merge(frames, gpu: gpu, steps: steps) { return r }
+        steps.done = start
+        return try merge(frames, gpu: nil, steps: steps)
+    }
+
+    static func merge(_ frames: [BurstFrame], gpu: GPUAccumulator?, steps: ProgressSteps? = nil) throws -> BurstMergeResult {
         guard let first = frames.first else { throw PipelineError.decode("no frames to merge") }
         guard frames.allSatisfy({ $0.cfa.width == first.cfa.width && $0.cfa.height == first.cfa.height }),
               first.cfa.width >= 64, first.cfa.height >= 64 else { throw PipelineError.decode("burst frames differ in size") }
@@ -593,11 +644,14 @@ public enum BurstMerger {
         var noise = defaultNoise(range: range)
         var fitted = false
         let count = base.cfa.width * base.cfa.height
-        var acc = Accumulator(weight: [Float](repeating: 0, count: count), value: [Float](repeating: 0, count: count))
+        let gpuMerge = try gpu.map { try GPUMerge(gpu: $0, base: base, confidence: conf) }
+        var acc = Accumulator(weight: gpuMerge == nil ? [Float](repeating: 0, count: count) : [],
+                              value: gpuMerge == nil ? [Float](repeating: 0, count: count) : [])
         var maxScale: Float = 1, merged = 1, shorts = 0
         var ghost: [Float]? = nil
         let order = frames.indices.filter { $0 != refIndex }.sorted { frames[$0].isSameExposure && !frames[$1].isSameExposure }
         for i in order {
+            defer { steps?.step() }
             var alt = frames[i]
             if let e0 = base.cfa.exposure, let e1 = alt.cfa.exposure, e1 > 0 {
                 let ratio = Float(e0 / e1)
@@ -616,32 +670,47 @@ public enum BurstMerger {
                 ghost = g
             }
             fillOffsets(&al)
-            accumulate(base: base, alt: alt, confidence: conf, alignment: al, weights: weights, noise: noise, ghost: ghost, into: &acc)
+            if let gpuMerge {
+                try gpuMerge.accumulate(alt: alt, alignment: al, weights: weights, noise: noise, ghost: ghost)
+            } else {
+                accumulate(base: base, alt: alt, confidence: conf, alignment: al, weights: weights, noise: noise, ghost: ghost, into: &acc)
+            }
             maxScale = max(maxScale, alt.scale)
             merged += 1
             if !alt.isSameExposure { shorts += 1 }
         }
 
         let headroom = maxScale * range
-        var (values, marked) = finalize(base: base, confidence: conf, acc: acc, ghost: ghost, noise: noise, maxScale: maxScale)
+        var (values, marked): ([Float], [Bool])
+        if let gpuMerge {
+            let sums = try gpuMerge.finish()
+            (values, marked) = finalize(base: base, confidence: conf, weight: sums.weight, value: sums.value, ghost: ghost, noise: noise, maxScale: maxScale)
+        } else {
+            (values, marked) = finalize(base: base, confidence: conf, acc: acc, ghost: ghost, noise: noise, maxScale: maxScale)
+        }
         if maxScale > 1.05 { repairHighlights(&values, marked: marked, base: base, ceiling: headroom) }
         let factor = 65535 / max(headroom, 1)
         let W = base.cfa.width
         let out = values.map { UInt16(min(max($0 * factor + 0.5, 0), 65535)) }
+        steps?.step()
         return BurstMergeResult(cfa: out, width: W, height: base.cfa.height, referenceIndex: refIndex,
                                 headroomStops: log2(maxScale), merged: merged, shorts: shorts, noiseModel: (noise.a, noise.b))
     }
 
     @discardableResult
-    public static func mergeFiles(_ frames: [(url: URL, scale: Float)], blurPixels: [Float?] = [], exposureBiasStops: Float = 0, to output: URL) throws -> BurstMergeResult {
+    public static func mergeFiles(_ frames: [(url: URL, scale: Float)], blurPixels: [Float?] = [], exposureBiasStops: Float = 0,
+                                  progress: MergeProgress? = nil, to output: URL) throws -> BurstMergeResult {
+        let steps = ProgressSteps(total: 2 * frames.count + 1, report: progress)
         let decoded = try frames.enumerated().map { i, f in
-            BurstFrame(cfa: try RawCFA(url: f.url), scale: f.scale, blurPixels: i < blurPixels.count ? blurPixels[i] : nil)
+            defer { steps.step() }
+            return BurstFrame(cfa: try RawCFA(url: f.url), scale: f.scale, blurPixels: i < blurPixels.count ? blurPixels[i] : nil)
         }
-        let result = try merge(decoded)
+        let result = try merge(decoded, steps: steps)
         let ref = try DNGFile(url: frames[result.referenceIndex].url)
         let n = Double(result.merged), h = Double(pow(2, result.headroomStops))
         try ref.writeMerged(cfa: result.cfa, width: result.width, height: result.height, marker: result.marker(exposureBiasStops: exposureBiasStops),
                             noiseScale: (1 / (n * h), 1 / (h * h * n)), exposureBias: exposureBiasStops, to: output)
+        steps.step()
         return result
     }
 }

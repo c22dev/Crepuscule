@@ -11,7 +11,7 @@ let package = Package(
         .executable(name: "crepuscule-render", targets: ["crepuscule-render"]),
     ],
     targets: [
-        .target(name: "Crepuscule", resources: [.copy("Resources/Shaders.metal")], swiftSettings: [.unsafeFlags(["-O"])]),
+        .target(name: "Crepuscule", resources: [.copy("Resources/Shaders.metal"), .copy("Resources/Accumulate.metal")], swiftSettings: [.unsafeFlags(["-O"])]),
         .executableTarget(name: "crepuscule-render", dependencies: ["Crepuscule"]),
         .testTarget(name: "CrepusculeTests", dependencies: ["Crepuscule"]),
     ]

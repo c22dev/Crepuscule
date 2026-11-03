@@ -5,8 +5,9 @@ import Foundation
 extension SuperResolution {
     @discardableResult
     public static func reconstructFiles(_ urls: [URL], cropFactor: Double, outputScale: Double? = nil, blurPixels: [Float?] = [],
-                                        to output: URL) throws -> SuperResolutionResult {
-        try reconstructFiles(urls, cropFactor: cropFactor, outputScale: outputScale, blurPixels: blurPixels, options: Options(), to: output)
+                                        progress: MergeProgress? = nil, to output: URL) throws -> SuperResolutionResult {
+        try reconstructFiles(urls, cropFactor: cropFactor, outputScale: outputScale, blurPixels: blurPixels, options: Options(),
+                             progress: progress, to: output)
     }
 
     static func baseExposure(_ exposures: [Double?]) -> Double? {
@@ -16,7 +17,8 @@ extension SuperResolution {
     }
 
     static func reconstructFiles(_ urls: [URL], cropFactor: Double, outputScale: Double?, blurPixels: [Float?], options: Options,
-                                 to output: URL) throws -> SuperResolutionResult {
+                                 progress: MergeProgress? = nil, to output: URL) throws -> SuperResolutionResult {
+        let steps = ProgressSteps(total: 2 * urls.count + 1, report: progress)
         guard let firstURL = urls.first else { throw PipelineError.decode("no frames") }
         let firstFile = try DNGFile(url: firstURL)
         let first = try firstFile.readCFA()
@@ -25,6 +27,7 @@ extension SuperResolution {
                                  outputScale: outputScale, margin: options.margin)
         var frames: [BurstFrame?] = []
         for (i, url) in urls.enumerated() {
+            defer { steps.step() }
             let cfa = i == 0 ? first : try RawCFA(url: url)
             let blur = i < blurPixels.count ? blurPixels[i] : nil
             guard cfa.width == first.width, cfa.height == first.height else { frames.append(nil); continue }
@@ -43,11 +46,12 @@ extension SuperResolution {
             let range = Double(max(first.white - first.black, 1))
             noise = BurstMerger.Noise(a: Float(np[0] * range), b: Float(max(np[1] * range * range, 1e-3)))
         }
-        let result = try run(frames, plan: plan, noiseModel: noise, options: options)
+        let result = try run(frames, plan: plan, noiseModel: noise, options: options, steps: steps)
         frames.removeAll()
         let ref = result.referenceIndex == 0 ? firstFile : try DNGFile(url: urls[result.referenceIndex])
         try ref.writeLinearRaw(result, plan: plan, geometry: ref.geometry(width: first.width, height: first.height),
                               cropFactor: cropFactor, to: output)
+        steps.step()
         return result
     }
 

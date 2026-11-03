@@ -101,7 +101,8 @@ public enum SuperResolution {
         var robust: [Float]?
     }
 
-    static func run(_ frames: [BurstFrame?], plan: Plan, noiseModel: BurstMerger.Noise? = nil, options: Options) throws -> SuperResolutionResult {
+    static func run(_ frames: [BurstFrame?], plan: Plan, noiseModel: BurstMerger.Noise? = nil, options: Options,
+                    steps: ProgressSteps? = nil) throws -> SuperResolutionResult {
         let start = Date()
         let eligible = frames.indices.filter { frames[$0]?.isSameExposure == true }
         guard !eligible.isEmpty else { throw PipelineError.decode("no same-exposure frame") }
@@ -128,7 +129,9 @@ public enum SuperResolution {
         var cols = 1, rows = 1
         var states: [FrameState] = []
         var pending: [(Int, [Float], [Float], [Float]?)] = []
+        for i in frames.indices where i != refIndex && frames[i] != nil && !eligible.contains(i) { steps?.step() }
         for i in eligible where i != refIndex {
+            defer { steps?.step() }
             let alt = frames[i]!
             if let e0 = base.cfa.exposure, let e1 = alt.cfa.exposure, e0 > 0, abs(e1 / e0 - 1) > 0.03 { continue }
             let altPyramid = BurstMerger.pyramid(BurstMerger.luma(alt, cap: cap))
@@ -154,9 +157,19 @@ public enum SuperResolution {
             states.append(FrameState(index: i, data: frames[i]!.cfa.data, black: frames[i]!.cfa.black, fx: fx, fy: fy, robust: robust))
         }
         let kernels = (maps ?? kernelMap(ref: refHalf, cfa: base.cfa, plan: plan, noise: noise, options: options)).kernels
-        let (rgb, coverage) = accumulate(states: states, cols: cols, rows: rows, plan: plan, pattern: base.cfa.pattern,
-                                         windowWidth: base.cfa.width, windowHeight: base.cfa.height, range: range,
-                                         kernels: kernels, options: options)
+        let accumulated: (rgb: [UInt16], coverage: Float)
+        if let gpu = GPUAccumulator.shared,
+           let r = try? accumulateGPU(gpu, states: states, cols: cols, rows: rows, plan: plan, pattern: base.cfa.pattern,
+                                      windowWidth: base.cfa.width, windowHeight: base.cfa.height, range: range,
+                                      kernels: kernels, options: options) {
+            accumulated = r
+        } else {
+            accumulated = accumulate(states: states, cols: cols, rows: rows, plan: plan, pattern: base.cfa.pattern,
+                                     windowWidth: base.cfa.width, windowHeight: base.cfa.height, range: range,
+                                     kernels: kernels, options: options)
+        }
+        let (rgb, coverage) = accumulated
+        steps?.step()
         return SuperResolutionResult(rgb: rgb, width: plan.outWidth, height: plan.outHeight, referenceIndex: refIndex,
                                      merged: states.count, coverage: coverage, crop: plan.crop,
                                      scaleX: Double(plan.sx), scaleY: Double(plan.sy), noiseModel: (noise.a, noise.b),
