@@ -84,6 +84,12 @@ actor RenderEngine {
 
     func invalidate(_ url: URL) { memory.removeAll { $0.url == url } }
 
+    func forget(_ urls: [URL]) {
+        let names = Set(urls.map(\.lastPathComponent))
+        memory.removeAll { names.contains($0.url.lastPathComponent) }
+        proxyCache.remove(sourceNames: names)
+    }
+
     func setVignette(_ amount: Double) {
         vignette = amount
         renderer?.appleVignetteAmount = amount

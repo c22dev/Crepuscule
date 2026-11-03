@@ -124,6 +124,15 @@ public final class ProxyCache: @unchecked Sendable {
         }
     }
 
+    public func remove(sourceNames: Set<String>) {
+        guard !sourceNames.isEmpty else { return }
+        lock.lock(); defer { lock.unlock() }
+        for e in entries() {
+            let name = e.url.lastPathComponent
+            if sourceNames.contains(where: { name.hasPrefix($0 + "_") }) { try? FileManager.default.removeItem(at: e.url) }
+        }
+    }
+
     public func removeAll() {
         lock.lock(); defer { lock.unlock() }
         for e in entries() { try? FileManager.default.removeItem(at: e.url) }

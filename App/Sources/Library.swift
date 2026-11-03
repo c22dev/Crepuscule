@@ -369,7 +369,9 @@ final class Library {
 
     func delete(_ id: UUID) {
         items.removeAll { $0.id == id }
+        let files = (try? FileManager.default.contentsOfDirectory(at: folder(id), includingPropertiesForKeys: nil)) ?? []
         try? FileManager.default.removeItem(at: folder(id))
+        Task { await RenderEngine.shared.forget(files) }
         touchThumb(id)
     }
 
