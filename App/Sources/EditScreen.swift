@@ -568,6 +568,8 @@ private struct RulerScrubber: View {
     @State private var lastMark: Int?
 
     private let length: CGFloat = 340
+    // same ~11pt pitch as the camera dial in both modes, one detent per tick
+    private var ticks: Int { fine ? 300 : 30 }
 
     var body: some View {
         let a = adjustment
@@ -575,12 +577,13 @@ private struct RulerScrubber: View {
         let value = a.value.wrappedValue
         Canvas { ctx, size in
             let mid = size.width / 2
-            for i in 0...60 {
-                let tick = a.range.lowerBound + span * Float(i) / 60
+            let n = ticks
+            for i in 0...n {
+                let tick = a.range.lowerBound + span * Float(i) / Float(n)
                 let x = mid + CGFloat((tick - value) / span) * length * (fine ? 10 : 1)
                 guard x > -2, x < size.width + 2 else { continue }
                 let major = i % 5 == 0
-                let isNeutral = abs(tick - a.neutral) < span / 120
+                let isNeutral = abs(tick - a.neutral) < span / Float(2 * n)
                 let h: CGFloat = isNeutral ? 18 : major ? 12 : 7
                 ctx.fill(Path(CGRect(x: x - 0.5, y: (size.height - h) / 2, width: 1, height: h)),
                          with: .color(.white.opacity(isNeutral ? 0.9 : major ? 0.5 : 0.25)))
@@ -628,7 +631,7 @@ private struct RulerScrubber: View {
                 next = min(max(next, a.range.lowerBound), a.range.upperBound)
                 if !fine, abs(next - a.neutral) < span * 0.012 { next = a.neutral }
                 if next == a.neutral, a.value.wrappedValue != a.neutral { Haptics.tick() }
-                let mark = Int(((next - a.range.lowerBound) / span * 60 * (fine ? 10 : 1)).rounded(.down))
+                let mark = Int(((next - a.range.lowerBound) / span * Float(ticks)).rounded())
                 if let lastMark, mark != lastMark, next != a.neutral { Haptics.detent() }
                 lastMark = mark
                 a.value.wrappedValue = next
@@ -650,6 +653,7 @@ private struct RulerScrubber: View {
             anchor = adjustment.value.wrappedValue
             startX = lastX
             fine = true
+            lastMark = nil
             Haptics.bump()
         }
     }
