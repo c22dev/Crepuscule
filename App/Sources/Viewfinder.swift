@@ -60,26 +60,50 @@ struct ViewfinderSurface: UIViewRepresentable {
 
 struct PreviewLayerView: UIViewRepresentable {
     let session: AVCaptureSession
+    let sessionQueue: DispatchQueue
     let angle: CGFloat
-    let lensID: String?
 
     final class Host: UIView {
+        private var sessionQueue: DispatchQueue?
         override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
         var preview: AVCaptureVideoPreviewLayer { layer as! AVCaptureVideoPreviewLayer }
+
+        func connect(to session: AVCaptureSession, on queue: DispatchQueue) {
+            sessionQueue = queue
+            let preview = preview
+            queue.async {
+                preview.session = session
+            }
+        }
+
+        func rotate(to angle: CGFloat) {
+            guard let sessionQueue else { return }
+            let preview = preview
+            sessionQueue.async {
+                if let connection = preview.connection,
+                   connection.isVideoRotationAngleSupported(angle), connection.videoRotationAngle != angle {
+                    connection.videoRotationAngle = angle
+                }
+            }
+        }
+
+        func disconnect() {
+            let preview = preview
+            sessionQueue?.async { preview.session = nil }
+        }
     }
 
     func makeUIView(context: Context) -> Host {
         let v = Host()
         v.backgroundColor = .black
         v.preview.videoGravity = .resizeAspectFill
-        v.preview.session = session
+        v.connect(to: session, on: sessionQueue)
         return v
     }
 
     func updateUIView(_ v: Host, context: Context) {
-        if let c = v.preview.connection, c.isVideoRotationAngleSupported(angle), c.videoRotationAngle != angle { c.videoRotationAngle = angle }
+        v.rotate(to: angle)
     }
 
-    // let go of the session or the next preview layer stays black
-    static func dismantleUIView(_ v: Host, coordinator: ()) { v.preview.session = nil }
+    static func dismantleUIView(_ v: Host, coordinator: ()) { v.disconnect() }
 }

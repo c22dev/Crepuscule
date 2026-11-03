@@ -230,8 +230,8 @@ private struct ViewfinderPane: View {
             let box = CGSize(width: w, height: w * 4 / 3)
             ZStack {
                 Group {
-                    if !model.showLook, model.phase == .running, let session = model.captureSession {
-                        PreviewLayerView(session: session, angle: model.previewAngle, lensID: model.active?.deviceID)
+                    if !model.showLook, model.phase == .running, let session = model.captureSession, let queue = model.sessionQueue {
+                        PreviewLayerView(session: session, sessionQueue: queue, angle: model.previewAngle)
                             .scaleEffect(model.active?.cropFactor ?? 1)
                             .animation(Motion.smooth, value: model.active?.cropFactor)
                     } else {

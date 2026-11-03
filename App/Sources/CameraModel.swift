@@ -242,6 +242,7 @@ final class CameraModel {
     private var controls: CameraControls?
 
     var captureSession: AVCaptureSession? { backend.captureSession }
+    var sessionQueue: DispatchQueue? { backend.sessionQueue }
     var previewAngle: CGFloat { backend.previewAngle }
 
     init(library: Library) {
