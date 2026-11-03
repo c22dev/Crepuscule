@@ -1,3 +1,5 @@
+<img src="docs/icon.png" width="128" alt="Crepuscule icon">
+
 # Crepuscule
 A Film RAW camera that lives on your iPhone
 
