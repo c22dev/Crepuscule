@@ -278,6 +278,7 @@ final class CameraModel {
     private var readoutHide: Task<Void, Never>?
 
     func beginZoom() {
+        cancelZoomSettle()
         guard active?.facing == .back else { zoomStart = nil; return }
         zoomStart = Double(active?.focalLength ?? 26)
         zoomToWide = false
@@ -295,43 +296,83 @@ final class CameraModel {
         }
         zoomToWide = false
         f = min(max(f, Double(base.focalLength)), CameraLens.maxZoomFocal)
-        let stops = [base.focalLength, 35, 50, 75, 100, 135, 200, Int(CameraLens.maxZoomFocal)] + backLenses.filter { $0.deviceID == base.deviceID }.map(\.focalLength)
+        let stops = [base.focalLength, 35, 50, 75, 100, 135, 200, Int(CameraLens.maxZoomFocal)] + backLenses.filter { $0.focalLength >= base.focalLength }.map(\.focalLength)
         let snap = stops.first { abs(Double($0) - f) < 1.5 }
         if let snap { f = Double(snap) }
         if snap != lastSnap, snap != nil { Haptics.tick() }
         lastSnap = snap
-        let target = Int(f.rounded())
-        zoomReadout = target
-        guard target != active?.focalLength || active?.deviceID != base.deviceID else { return }
-        let listed = backLenses.first { $0.deviceID == base.deviceID && $0.focalLength == target }
-        select(listed ?? base.crop(focal: f), quiet: true)
+        zoomReadout = Int(f.rounded())
+        lastZoomFocal = f
+        applyZoom(f, settle: false)
     }
 
     func setZoomFocal(_ focal: Double) {
         guard let base = zoomBase, !firing else { return }
         let wide = backLenses.filter { $0.cropFactor == 1 && $0.focalLength < base.focalLength }.max { $0.focalLength < $1.focalLength }
         if let wide, focal < Double(base.focalLength) * 0.85 {
+            settleTask?.cancel()
             if active != wide { select(wide, quiet: true) }
             return
         }
         let f = min(max(focal, Double(base.focalLength)), CameraLens.maxZoomFocal)
-        let target = Int(f.rounded())
-        guard target != active?.focalLength || active?.deviceID != base.deviceID else { return }
-        let listed = backLenses.first { $0.deviceID == base.deviceID && $0.focalLength == target }
-        select(listed ?? base.crop(focal: f), quiet: true)
+        applyZoom(f, settle: false)
+        // camera control has no end event, settle once it stops moving
+        settleTask?.cancel()
+        settleTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 450_000_000)
+            guard !Task.isCancelled, let self else { return }
+            settleTask = nil
+            if active?.facing == .back { applyZoom(f, settle: true) }
+        }
     }
 
     func endZoom() {
         if zoomToWide, let base = zoomBase,
            let wide = backLenses.filter({ $0.cropFactor == 1 && $0.focalLength < base.focalLength }).max(by: { $0.focalLength < $1.focalLength }) {
             select(wide)
+        } else if zoomStart != nil, let f = lastZoomFocal {
+            zoomStart = nil
+            applyZoom(f, settle: true)
         }
-        zoomStart = nil; zoomToWide = false; lastSnap = nil
+        zoomStart = nil; zoomToWide = false; lastSnap = nil; lastZoomFocal = nil
         readoutHide = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 700_000_000)
             if !Task.isCancelled { self?.zoomReadout = nil }
         }
     }
+
+    private func cancelZoomSettle() { settleTask?.cancel(); settleTask = nil; pendingZoom = nil }
+
+    private var lastZoomFocal: Double?
+    private var pendingZoom: (focal: Double, settle: Bool)?
+    private var settleTask: Task<Void, Never>?
+
+    // main + teles, shortest first
+    private var zoomSources: [CameraLens] {
+        guard let base = zoomBase else { return [] }
+        return backLenses.filter { $0.cropFactor == 1 && $0.focalLength >= base.focalLength }.sorted { $0.focalLength < $1.focalLength }
+    }
+
+    // longest camera whose native focal is still <= f, so it gets there by cropping (a longer tele can't zoom out)
+    private func zoomSource(for f: Double) -> CameraLens? {
+        zoomSources.last { Double($0.focalLength) <= f + 0.5 } ?? zoomBase
+    }
+
+    private func applyZoom(_ f: Double, settle: Bool) {
+        guard !firing, let best = zoomSource(for: f) else { return }
+        if switching { pendingZoom = (f, settle); return }
+        var source = best
+        // mid gesture keep cropping the current camera if it can reach f, switching devices stalls the preview
+        if !settle, let a = active, a.facing == .back,
+           let current = zoomSources.first(where: { $0.deviceID == a.deviceID }), Double(current.focalLength) <= f + 0.5 {
+            source = current
+        }
+        let target = Int(f.rounded())
+        let lens = backLenses.first { $0.deviceID == source.deviceID && $0.focalLength == target } ?? source.crop(focal: f)
+        guard lens.focalLength != active?.focalLength || lens.deviceID != active?.deviceID else { return }
+        select(lens, quiet: true)
+    }
+
     var frontLens: CameraLens? { lenses.first { $0.facing == .front } }
     var isFront: Bool { active?.facing == .front }
 
@@ -477,6 +518,7 @@ final class CameraModel {
             },
             lens: { [weak self] i in
                 guard let self, controlLenses.indices.contains(i) else { return }
+                cancelZoomSettle()
                 select(controlLenses[i])
                 syncControls()
             },
@@ -516,6 +558,8 @@ final class CameraModel {
     func isInstant(_ lens: CameraLens) -> Bool { active.map { $0.deviceID == lens.deviceID && $0.facing == lens.facing } ?? false }
 
     func select(_ lens: CameraLens, quiet: Bool = false) {
+        // an explicit pick (not a zoom step) wins over a pending camera control settle
+        if !quiet { cancelZoomSettle() }
         guard lens != active, !switching, !firing else { return }
         if isInstant(lens) {
             active = lens
@@ -537,11 +581,16 @@ final class CameraModel {
             } catch { notice = "Couldn't switch to \(lens.focalLength) mm." }
             try? await Task.sleep(nanoseconds: 120_000_000)
             switching = false
+            if let p = pendingZoom {
+                pendingZoom = nil
+                if active?.facing == .back { applyZoom(p.focal, settle: p.settle || (zoomStart == nil && settleTask == nil)) }
+            }
         }
     }
 
     func flipCamera() {
         guard !switching, !firing else { return }
+        cancelZoomSettle()
         flips += 1
         if isFront, let back = backLenses.first(where: { $0.focalLength > 20 }) ?? backLenses.first { select(back) }
         else if let frontLens { select(frontLens) }
