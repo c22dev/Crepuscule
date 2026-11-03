@@ -13,8 +13,6 @@ enum Ink {
     static let stone = Color(white: 0.6)
     static let line = Color.white.opacity(0.14)
 
-    static let duskStops = Gradient(colors: [dusk, Color(red: 0xD9 / 255, green: 0x4E / 255, blue: 0x8F / 255), ember])
-    static let duskGradient = LinearGradient(gradient: duskStops, startPoint: .leading, endPoint: .trailing)
     static let duskRing = AngularGradient(gradient: Gradient(colors: [dusk, Color(red: 0xD9 / 255, green: 0x4E / 255, blue: 0x8F / 255), ember, ember]),
                                           center: .center, startAngle: .degrees(-90), endAngle: .degrees(270))
 }

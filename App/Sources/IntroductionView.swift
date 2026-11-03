@@ -12,35 +12,33 @@ struct IntroductionView: View {
     private var last: Bool { page == count - 1 }
 
     var body: some View {
-        VStack(spacing: 0) {
-            topBar
-            TabView(selection: $page) {
-                WelcomePage(active: page == 0).tag(0)
-                IntroPage(number: 1, kicker: "Burst Merge", title: "Many frames, one RAW.",
-                          message: "Every press takes a quick burst of RAW frames and merges them into one: less noise without smearing detail, and more highlight detail from the darker frames.",
-                          note: ("moon.fill", "In low light, night bursts take up to 16 short frames. A moon shows by the exposure readout when they do."),
-                          visualLabel: "A burst of noisy frames gathering into one clean RAW.") {
-                    BurstVisual(active: page == 1)
-                }
-                .tag(1)
-                IntroPage(number: 2, kicker: "Looks", title: "Film, developed from RAW.",
-                          message: "LogC, a print-film curve, halation and grain, applied to the RAW. The look button in the camera's top row picks the look for new photos and can preview it live.",
-                          note: ("slider.horizontal.3", "Refine any photo with the editor's Looks tab and its Tone, Color and Texture tools. The RAW is always kept."),
-                          visualLabel: "Geraniums in a Swiss village, split between the flat RAW and the film look, alternating between Factory and Mono.") {
-                    LooksVisual(active: page == 2)
-                }
-                .tag(2)
-                IntroPage(number: 3, kicker: "Zoom", title: "14 to 270 mm.",
-                          message: "Slide along the lens pill, or pinch. Past 2× (54 mm), shots are rebuilt with multi-frame super-resolution from the tiny movements of your hands in the burst: real extra detail, not just a crop.",
-                          note: ("camera.shutter.button", "With Camera Control, light double-press and choose Zoom."),
-                          visualLabel: "A lens scale gliding from 14 to 270 millimetres, with super-resolution past 54.") {
-                    ZoomVisual(active: page == 3)
-                }
-                .tag(3)
+        TabView(selection: $page) {
+            WelcomePage(active: page == 0).tag(0)
+            IntroPage(number: 1, kicker: "Burst Merge", title: "Many frames, one RAW.",
+                      message: "Every press takes a quick burst of RAW frames and merges them into one: less noise without smearing detail, and more highlight detail from the darker frames.",
+                      note: ("moon.fill", "In low light, night bursts take up to 16 short frames. A moon shows by the exposure readout when they do."),
+                      visualLabel: "A burst of noisy frames gathering into one clean RAW.") {
+                BurstVisual(active: page == 1)
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            controls
+            .tag(1)
+            IntroPage(number: 2, kicker: "Looks", title: "Film, developed from RAW.",
+                      message: "LogC, a print-film curve, halation and grain, applied to the RAW. The look button in the camera's top row picks the look for new photos and can preview it live.",
+                      note: ("slider.horizontal.3", "Refine any photo with the editor's Looks tab and its Tone, Color and Texture tools. The RAW is always kept."),
+                      visualLabel: "Geraniums in a Swiss village, split between the flat RAW and the film look, alternating between Factory and Mono.") {
+                LooksVisual(active: page == 2)
+            }
+            .tag(2)
+            IntroPage(number: 3, kicker: "Zoom", title: "14 to 270 mm.",
+                      message: "Slide along the lens pill, or pinch. Past 2× (54 mm), shots are rebuilt with multi-frame super-resolution from the tiny movements of your hands in the burst: real extra detail, not just a crop.",
+                      note: ("camera.shutter.button", "With Camera Control, light double-press and choose Zoom."),
+                      visualLabel: "A lens scale gliding from 14 to 270 millimetres, with super-resolution past 54.") {
+                ZoomVisual(active: page == 3)
+            }
+            .tag(3)
         }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .safeAreaBar(edge: .top, spacing: 0) { topBar }
+        .safeAreaBar(edge: .bottom, spacing: 0) { controls }
         .background { backdrop }
         .preferredColorScheme(.dark)
         .sensoryFeedback(.selection, trigger: page)
@@ -139,6 +137,7 @@ private struct PageScroll<Content: View>: View {
             }
             .scrollBounceBehavior(.basedOnSize)
             .scrollIndicators(.hidden)
+            .scrollEdgeEffectStyle(.soft, for: [.top, .bottom])
         }
     }
 }
@@ -257,76 +256,11 @@ private func hold(_ seconds: Double) async -> Bool {
     (try? await Task.sleep(for: .seconds(seconds))) != nil
 }
 
-private struct DuskMark: View {
-    let active: Bool
-    @State private var settled = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        GeometryReader { geo in
-            let side = min(geo.size.width, geo.size.height)
-            let sun = side * 0.56
-            let horizon = side * 0.6
-            let rise = settled ? sun * 0.08 : sun * 0.3
-            let width = min(geo.size.width, side * 1.35)
-            ZStack(alignment: .top) {
-                Circle().fill(Ink.dusk.opacity(0.22)).frame(width: sun * 1.5, height: sun * 1.5)
-                    .blur(radius: sun * 0.3)
-                    .offset(y: horizon - sun * 0.75 - rise)
-                VStack(spacing: 0) {
-                    Color.clear.frame(width: width, height: horizon).overlay(alignment: .top) {
-                        Circle().fill(LinearGradient(gradient: Ink.duskStops, startPoint: .top, endPoint: .bottom))
-                            .frame(width: sun, height: sun)
-                            .offset(y: horizon - sun / 2 - rise)
-                    }
-                    .clipped()
-                    Color.clear.frame(width: width, height: side - horizon).overlay(alignment: .top) {
-                        Circle().fill(LinearGradient(gradient: Ink.duskStops, startPoint: .bottom, endPoint: .top))
-                            .frame(width: sun, height: sun)
-                            .offset(y: rise - sun / 2)
-                    }
-                    .clipped()
-                    .mask {
-                        VStack(spacing: side * 0.028) {
-                            ForEach(0..<6, id: \.self) { i in
-                                Capsule().frame(width: sun * (1 - CGFloat(i) * 0.13), height: max(1.5, side * 0.018 - CGFloat(i) * 1.2))
-                            }
-                            Spacer(minLength: 0)
-                        }
-                        .padding(.top, side * 0.03)
-                    }
-                    .opacity(0.4)
-                }
-                Rectangle().fill(Ink.paper.opacity(0.55)).frame(width: width, height: 1).offset(y: horizon)
-                    .mask(LinearGradient(colors: [.clear, .black, .black, .clear], startPoint: .leading, endPoint: .trailing))
-            }
-            .frame(width: geo.size.width, height: side)
-            .frame(maxHeight: .infinity)
-        }
-        .task(id: active) {
-            guard active else { return }
-            if reduceMotion { settled = true; return }
-            settled = false
-            guard await hold(0.25) else { return }
-            withAnimation(.easeOut(duration: 3.2)) { settled = true }
-        }
-    }
-}
-
 private struct SceneLook: Equatable {
     var name: String
-    var saturation: Double
-    var contrast: Double
-    var brightness: Double
-    var halation: Double
-    var grain: Double
-    var warmth: Double
 
-    static let raw = SceneLook(name: "RAW", saturation: 0.42, contrast: 0.6, brightness: 0.07, halation: 0, grain: 0, warmth: 0)
-    static let factory = SceneLook(name: "Factory", saturation: 1, contrast: 1.12, brightness: 0, halation: 0.4, grain: 0.22, warmth: 0.12)
-    static let optical = SceneLook(name: "Optical", saturation: 1.06, contrast: 1.05, brightness: 0.02, halation: 0.85, grain: 0.26, warmth: 0.18)
-    static let noHalation = SceneLook(name: "No Halation", saturation: 1, contrast: 1.16, brightness: 0, halation: 0, grain: 0.22, warmth: 0.08)
-    static let mono = SceneLook(name: "Mono", saturation: 0, contrast: 1.28, brightness: 0, halation: 0.3, grain: 0.36, warmth: 0)
+    static let factory = SceneLook(name: "Factory")
+    static let mono = SceneLook(name: "Mono")
     static let all = [factory, mono]
     var asset: String {
         switch name {
@@ -340,72 +274,6 @@ private struct SceneLook: Equatable {
 enum IntroCredits {
     static let line = "Photos: Jonathan Bieler, Colin Mckinney · CC BY-SA 4.0"
     static let settingsLine = "Introduction photos: Jonathan Bieler, Colin Mckinney · CC BY-SA 4.0"
-}
-
-private struct Ridge: Shape {
-    let points: [CGPoint]
-    func path(in r: CGRect) -> Path {
-        var p = Path()
-        let pts = points.map { CGPoint(x: r.minX + $0.x * r.width, y: r.minY + $0.y * r.height) }
-        p.move(to: CGPoint(x: r.minX, y: r.maxY))
-        p.addLine(to: pts[0])
-        for i in 1..<pts.count {
-            let mid = CGPoint(x: (pts[i - 1].x + pts[i].x) / 2, y: (pts[i - 1].y + pts[i].y) / 2)
-            p.addQuadCurve(to: mid, control: pts[i - 1])
-        }
-        p.addLine(to: pts[pts.count - 1])
-        p.addLine(to: CGPoint(x: r.maxX, y: r.maxY))
-        p.closeSubpath()
-        return p
-    }
-}
-
-private struct DuskScene: View {
-    var look: SceneLook = .raw
-    var noise: Double = 0
-    var seed: UInt64 = 1
-    static let sunCenter = UnitPoint(x: 0.6, y: 0.55)
-
-    var body: some View {
-        GeometryReader { geo in
-            let w = geo.size.width, h = geo.size.height
-            let sun = w * 0.17
-            ZStack {
-                LinearGradient(stops: [
-                    .init(color: Color(red: 0.09, green: 0.09, blue: 0.2), location: 0),
-                    .init(color: Color(red: 0.3, green: 0.22, blue: 0.4), location: 0.38),
-                    .init(color: Color(red: 0.86, green: 0.52, blue: 0.4), location: 0.58),
-                    .init(color: Color(red: 0.95, green: 0.72, blue: 0.5), location: 0.66),
-                ], startPoint: .top, endPoint: .bottom)
-                Ellipse().fill(Color(red: 1, green: 0.78, blue: 0.55).opacity(0.5))
-                    .frame(width: w * 0.9, height: h * 0.22).blur(radius: w * 0.07)
-                    .position(x: w * 0.6, y: h * 0.56)
-                Circle().fill(Color(red: 1, green: 0.93, blue: 0.8))
-                    .frame(width: sun, height: sun)
-                    .position(x: w * Self.sunCenter.x, y: h * Self.sunCenter.y)
-                Ridge(points: [.init(x: 0, y: 0.6), .init(x: 0.12, y: 0.55), .init(x: 0.26, y: 0.59), .init(x: 0.4, y: 0.51),
-                               .init(x: 0.5, y: 0.58), .init(x: 0.68, y: 0.6), .init(x: 0.84, y: 0.55), .init(x: 1, y: 0.6)])
-                    .fill(Color(red: 0.26, green: 0.18, blue: 0.3))
-                Ridge(points: [.init(x: 0, y: 0.78), .init(x: 0.18, y: 0.69), .init(x: 0.36, y: 0.76), .init(x: 0.56, y: 0.71),
-                               .init(x: 0.76, y: 0.8), .init(x: 1, y: 0.73)])
-                    .fill(Color(red: 0.08, green: 0.07, blue: 0.11))
-                Circle().fill(Color(red: 1, green: 0.3, blue: 0.16))
-                    .frame(width: sun * 2.2, height: sun * 2.2).blur(radius: w * 0.05)
-                    .position(x: w * Self.sunCenter.x, y: h * Self.sunCenter.y)
-                    .blendMode(.screen)
-                    .opacity(look.halation * 0.75)
-                Color(red: 1, green: 0.55, blue: 0.2).opacity(look.warmth).blendMode(.softLight)
-            }
-            .saturation(look.saturation)
-            .contrast(look.contrast)
-            .brightness(look.brightness)
-            .overlay {
-                if look.grain + noise > 0 { Grain(amount: look.grain + noise, seed: seed) }
-            }
-        }
-        .clipped()
-        .accessibilityHidden(true)
-    }
 }
 
 private struct Grain: View {
@@ -511,6 +379,8 @@ private struct LooksVisual: View {
     let active: Bool
     @State private var index = 0
     @State private var split: CGFloat = 0.5
+    @State private var held = false
+    @State private var touches = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let looks = SceneLook.all
 
@@ -530,10 +400,26 @@ private struct LooksVisual: View {
                     }
                     .mask(alignment: .trailing) { Rectangle().frame(width: w * (1 - split)) }
                     Rectangle().fill(Ink.paper).frame(width: 1.5)
-                        .overlay { Circle().fill(Ink.paper).frame(width: 9, height: 9) }
+                        .overlay {
+                            Circle().fill(Ink.paper).frame(width: held ? 26 : 20, height: held ? 26 : 20)
+                                .overlay {
+                                    Image(systemName: "arrow.left.and.right")
+                                        .font(.system(size: 9, weight: .bold)).foregroundStyle(Ink.ground)
+                                }
+                                .animation(Motion.snappy, value: held)
+                        }
                         .offset(x: w * split - 0.75)
                         .shadow(color: .black.opacity(0.4), radius: 4)
+                    Color.clear.frame(width: 64, height: h).contentShape(.rect)
+                        .offset(x: w * split - 32)
+                        .highPriorityGesture(DragGesture(minimumDistance: 0, coordinateSpace: .named("looksSplit"))
+                            .onChanged { v in
+                                held = true
+                                withTransaction(Transaction(animation: nil)) { split = min(max(v.location.x / w, 0.04), 0.96) }
+                            }
+                            .onEnded { _ in held = false; touches += 1 })
                 }
+                .coordinateSpace(.named("looksSplit"))
                 .frame(width: w, height: h)
                 .clipShape(shape)
                 .overlay(shape.strokeBorder(Ink.line, lineWidth: 1))
@@ -545,6 +431,7 @@ private struct LooksVisual: View {
                         let on = i == index
                         Button {
                             withAnimation(Motion.fade) { index = i }
+                            touches += 1
                         } label: {
                             VStack(spacing: 5) {
                                 Image(looks[i].asset).resizable().scaledToFill()
@@ -565,9 +452,9 @@ private struct LooksVisual: View {
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
-        .task(id: active) {
-            guard active else { return }
-            split = 0.5
+        .task(id: [active ? 1 : 0, held ? 1 : 0, touches]) {
+            guard active, !held else { return }
+            if touches == 0 { split = 0.5 } else { guard await hold(3) else { return } }
             while true {
                 guard await hold(2.4) else { return }
                 withAnimation(reduceMotion ? Motion.fade : .easeInOut(duration: 0.6)) { index = (index + 1) % looks.count }
@@ -576,6 +463,7 @@ private struct LooksVisual: View {
                 }
             }
         }
+        .onChange(of: active) { _, on in if !on { touches = 0 } }
     }
 
     private func tag(_ text: String) -> some View {
@@ -589,9 +477,48 @@ private struct LooksVisual: View {
 private struct ZoomVisual: View {
     let active: Bool
     @State private var mm: Double = 14
+    @State private var held = false
+    @State private var touches = 0
+    @State private var grab: Double?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let route: [Double] = [26, 54, 120, 270, 54, 14]
     private var superRes: Bool { mm > 54 }
+
+    private func set(_ f: Double) {
+        let new = min(max(f, 14), 270)
+        let lo = min(mm, new), hi = max(mm, new)
+        if new != mm {
+            if new == 14 || new == 270 { Haptics.bump() }
+            else if [26.0, 54].contains(where: { lo < $0 && $0 <= hi }) { Haptics.tick() }
+            else if Int(log2(new / 14) * 4) != Int(log2(mm / 14) * 4) { Haptics.detent() }
+        }
+        withTransaction(Transaction(animation: nil)) { mm = new }
+    }
+
+    private func release() { grab = nil; held = false; touches += 1 }
+
+    private var rulerDrag: some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { v in
+                let start = grab ?? log2(mm / 14)
+                grab = start
+                held = true
+                set(14 * pow(2, start - Double(v.translation.width / FocalRuler.perStop)))
+            }
+            .onEnded { _ in release() }
+    }
+
+    private var pinch: some Gesture {
+        MagnifyGesture()
+            .onChanged { v in
+                let start = grab ?? mm
+                grab = start
+                held = true
+                // photo scales by (mm/14)^0.65, invert it to stay under the finger
+                set(start * pow(Double(v.magnification), 1 / 0.65))
+            }
+            .onEnded { _ in release() }
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -619,16 +546,25 @@ private struct ZoomVisual: View {
                                 .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .bottomLeading)))
                         }
                     }
+                    .animation(Motion.fade, value: superRes)
                     .shadow(color: .black.opacity(0.5), radius: 16, y: 6)
+                    .contentShape(shape)
+                    .gesture(pinch)
                 FocalRuler(mm: mm)
                     .frame(width: min(w, geo.size.width), height: rulerH)
+                    .contentShape(.capsule)
+                    .highPriorityGesture(rulerDrag)
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
-        .task(id: active) {
-            guard active else { return }
-            if reduceMotion { mm = 120; return }
-            mm = 14
+        .task(id: [active ? 1 : 0, held ? 1 : 0, touches]) {
+            guard active, !held else { return }
+            if touches > 0 {
+                guard !reduceMotion, await hold(3) else { return }
+            } else {
+                if reduceMotion { mm = 120; return }
+                mm = 14
+            }
             while true {
                 for stop in route {
                     guard await hold(stop == 270 ? 2.2 : 1.5) else { return }
@@ -636,15 +572,16 @@ private struct ZoomVisual: View {
                 }
             }
         }
+        .onChange(of: active) { _, on in if !on { touches = 0 } }
     }
 }
 
 private struct FocalRuler: View {
     let mm: Double
-    private let perStop: CGFloat = 70
+    static let perStop: CGFloat = 70
     private let majors: [(mm: Double, mark: String?)] = [(14, nil), (26, nil), (54, "2×"), (270, nil)]
 
-    private func x(_ f: Double) -> CGFloat { CGFloat(log2(f / 14)) * perStop }
+    private func x(_ f: Double) -> CGFloat { CGFloat(log2(f / 14)) * Self.perStop }
 
     var body: some View {
         GeometryReader { geo in
