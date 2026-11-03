@@ -14,7 +14,7 @@ public enum HalationPreset: Int, Codable, CaseIterable, Sendable {
     }
 }
 
-public struct HalationParams: Codable, Equatable, Sendable {
+public struct HalationParams: Codable, Hashable, Sendable {
     public var enabled: Bool
     public var preset: HalationPreset
     public init(enabled: Bool = true, preset: HalationPreset = .photochemical) {
@@ -23,7 +23,7 @@ public struct HalationParams: Codable, Equatable, Sendable {
     }
 }
 
-public struct CropInsets: Codable, Equatable, Sendable {
+public struct CropInsets: Codable, Hashable, Sendable {
     public var left, top, right, bottom: Double
     public init(left: Double = 0, top: Double = 0, right: Double = 0, bottom: Double = 0) {
         self.left = left; self.top = top; self.right = right; self.bottom = bottom
@@ -31,7 +31,7 @@ public struct CropInsets: Codable, Equatable, Sendable {
     var areaFraction: Double { (1 - left - right) * (1 - top - bottom) }
 }
 
-public struct Grade: Codable, Equatable, Sendable {
+public struct Grade: Codable, Hashable, Sendable {
     public var blackAndWhite = false
     public var exposureStops: Float = 0
     public var colorTemp: Float = 0

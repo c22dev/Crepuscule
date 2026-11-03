@@ -65,6 +65,28 @@ actor RenderEngine {
         return try r.cgImage(r.grade(framed, grade: grade, baselineStops: p.baselineStops, lut: l, seed: seed))
     }
 
+    // size of the framed full-res image, same arithmetic as applyGeometry (only used for zoom limits)
+    func framedSize(url: URL, grade: Grade, useDisk: Bool) throws -> CGSize? {
+        let p = try proxy(url, useDisk: useDisk)
+        var w = Double(p.fullWidth), h = Double(p.fullHeight)
+        let turns = ((grade.rotationQuarterTurns % 4) + 4) % 4
+        if turns == 1 || turns == 3 { swap(&w, &h) }
+        var iw = w, ih = h
+        if abs(grade.fineRotationDegrees) > 0.001 {
+            let a = abs(grade.fineRotationDegrees * .pi / 180), s = abs(sin(a)), c = abs(cos(a))
+            let long = max(w, h), short = min(w, h)
+            if short <= long * s * c * 2 || abs(s - c) < 1e-10 {
+                let half = short * 0.5
+                (iw, ih) = w < h ? (half / c, half / s) : (half / s, half / c)
+            } else {
+                let d = c * c - s * s
+                (iw, ih) = ((w * c - h * s) / d, (h * c - w * s) / d)
+            }
+        }
+        let k = grade.cropInsets
+        return CGSize(width: iw * (1 - k.left - k.right), height: ih * (1 - k.top - k.bottom))
+    }
+
     func writeThumbnail(url: URL, grade: Grade, seed: Float, to file: URL, useDisk: Bool) throws {
         let image = try preview(url: url, grade: grade, seed: seed, longSide: 720, useDisk: useDisk)
         let data = try ExportEncoder.encode(image, format: .jpeg, quality: 0.85)
@@ -82,7 +104,7 @@ actor RenderEngine {
         return out
     }
 
-    func invalidate(_ url: URL) { memory.removeAll { $0.url == url } }
+    func invalidate(_ url: URL) { memory.removeAll { $0.url == url }; Task { await DetailEngine.shared.release(url) } }
 
     func forget(_ urls: [URL]) {
         let names = Set(urls.map(\.lastPathComponent))
@@ -94,8 +116,50 @@ actor RenderEngine {
         vignette = amount
         renderer?.appleVignetteAmount = amount
         memory.removeAll()
+        Task { await DetailEngine.shared.setVignette(amount) }
     }
 
     func cacheBytes() -> Int { proxyCache.byteCount }
     func clearCache() { proxyCache.removeAll(); memory.removeAll() }
+}
+
+// full-res render for zooming in the viewer, on its own renderer so it never holds up page previews.
+// It is the exact call an original-size export makes, so what you see zoomed in is the export, byte for byte.
+actor DetailEngine {
+    static let shared = DetailEngine()
+
+    private struct Key: Equatable { let url: URL; let grade: Grade; let seed: Float; let vignette: Double }
+    private var renderer: ColorPipelineRenderer?
+    private var lut: MTLTexture?
+    private var vignette = UserDefaults.standard.object(forKey: "appleVignetteAmount") as? Double ?? 1
+    private var cached: (key: Key, image: CGImage)?
+
+    private func ready() throws -> (ColorPipelineRenderer, MTLTexture) {
+        if let renderer, let lut { return (renderer, lut) }
+        let r = try ColorPipelineRenderer()
+        r.appleVignetteAmount = vignette
+        guard let url = Bundle.main.url(forResource: "PrintLUT", withExtension: "cube") else { throw EngineError.missingLUT }
+        let l = try r.loadCube(url: url)
+        renderer = r; lut = l
+        return (r, l)
+    }
+
+    func fullResolution(url: URL, grade: Grade, seed: Float) throws -> CGImage {
+        let key = Key(url: url, grade: grade, seed: seed, vignette: vignette)
+        if let cached, cached.key == key { return cached.image }
+        cached = nil
+        let (r, l) = try ready()
+        let image = try r.render(dng: url, grade: grade, lut: l, seed: seed)
+        cached = (key, image)
+        return image
+    }
+
+    func release() { cached = nil }
+    func release(_ url: URL) { if cached?.key.url == url { cached = nil } }
+
+    func setVignette(_ amount: Double) {
+        vignette = amount
+        renderer?.appleVignetteAmount = amount
+        cached = nil
+    }
 }

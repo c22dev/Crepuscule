@@ -1,5 +1,6 @@
 // Crepuscule - PhotoPager.swift
 // Constantin Clerc (c22dev) - 0.1
+import AVFoundation
 import Crepuscule
 import SwiftUI
 
@@ -30,12 +31,15 @@ struct PhotoPager: View {
             Color.black.ignoresSafeArea()
             TabView(selection: $selection) {
                 ForEach(library.items.reversed()) { item in
-                    PhotoPage(library: library, item: item) { withAnimation(Motion.fade) { chromeHidden.toggle() } }
+                    PhotoPage(library: library, item: item, isCurrent: item.id == selection) { withAnimation(Motion.fade) { chromeHidden.toggle() } }
                         .tag(item.id).ignoresSafeArea()
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .ignoresSafeArea()
+            // the zoom render is a full-res image, drop it when moving on
+            .onChange(of: selection) { Task { await DetailEngine.shared.release() } }
+            .onDisappear { Task { await DetailEngine.shared.release() } }
             VStack(spacing: 0) {
                 topBar
                     .offset(y: chromeHidden ? -24 : 0)
@@ -218,14 +222,21 @@ struct ShareSheet: UIViewControllerRepresentable {
 private struct PhotoPage: View {
     let library: Library
     let item: PhotoItem
+    var isCurrent = true
     var onTap: () -> Void = {}
     @State private var image: UIImage?
     @State private var failed: String?
+    @State private var framed: CGSize?
 
-    private struct RenderKey: Equatable { let grade: Grade; let merge: Int }
+    private struct RenderKey: Hashable { let grade: Grade; let merge: Int }
+    private var key: RenderKey { RenderKey(grade: item.grade, merge: library.mergeStamp[item.id] ?? 0) }
 
     var body: some View {
-        ZoomableImage(image: image ?? library.thumbnail(item.id), onTap: onTap)
+        let url = library.rawURL(item), grade = item.grade, seed = item.seed
+        // only the visible page holds a full-res render, and not while a burst merge is using the memory
+        let detail: ZoomableImage.Detail = { @Sendable in try? await DetailEngine.shared.fullResolution(url: url, grade: grade, seed: seed) }
+        ZoomableImage(image: image ?? library.thumbnail(item.id), sourceSize: framed, detailKey: key,
+                      allowsDetail: isCurrent && library.merging.isEmpty, keepsDetail: isCurrent, onTap: onTap, detail: detail)
             .overlay {
                 if let failed {
                     Text(failed).font(.footnote).foregroundStyle(Ink.stone).padding(30).multilineTextAlignment(.center)
@@ -233,11 +244,13 @@ private struct PhotoPage: View {
                     ProgressView()
                 }
             }
-            .task(id: RenderKey(grade: item.grade, merge: library.mergeStamp[item.id] ?? 0)) {
+            .task(id: key) {
                 do {
-                    let cg = try await RenderEngine.shared.preview(url: library.rawURL(item), grade: item.grade, seed: item.seed, useDisk: library.settings.useDiskCache)
+                    let useDisk = library.settings.useDiskCache
+                    let cg = try await RenderEngine.shared.preview(url: url, grade: grade, seed: seed, useDisk: useDisk)
                     image = UIImage(cgImage: cg)
                     failed = nil
+                    framed = try? await RenderEngine.shared.framedSize(url: url, grade: grade, useDisk: useDisk)
                 } catch {
                     if image == nil { failed = "\(error)" }
                 }
@@ -246,8 +259,17 @@ private struct PhotoPage: View {
 }
 
 struct ZoomableImage: UIViewRepresentable {
+    // the full-resolution export of this photo, shown over the preview once zoomed past what the preview holds
+    typealias Detail = @Sendable () async -> CGImage?
     let image: UIImage?
+    // full res size of the framed image, nil until known
+    var sourceSize: CGSize? = nil
+    var detailKey: AnyHashable? = nil
+    // may start a full-res render now / may keep one on screen
+    var allowsDetail = true
+    var keepsDetail = true
     var onTap: () -> Void = {}
+    var detail: Detail? = nil
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -266,6 +288,12 @@ struct ZoomableImage: UIViewRepresentable {
         v.isAccessibilityElement = true
         v.accessibilityLabel = "Photo"
         s.addSubview(v)
+        let d = context.coordinator.detailView
+        d.contentMode = .scaleToFill
+        d.autoresizingMask = [.flexibleWidth, .flexibleHeight, .flexibleLeftMargin, .flexibleRightMargin, .flexibleTopMargin, .flexibleBottomMargin]
+        d.alpha = 0
+        v.addSubview(d)
+        context.coordinator.scrollView = s
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.doubleTap(_:)))
         tap.numberOfTapsRequired = 2
         s.addGestureRecognizer(tap)
@@ -276,24 +304,116 @@ struct ZoomableImage: UIViewRepresentable {
     }
 
     func updateUIView(_ s: UIScrollView, context: Context) {
-        context.coordinator.onTap = onTap
-        if context.coordinator.imageView.image !== image {
-            UIView.transition(with: context.coordinator.imageView, duration: context.coordinator.imageView.image == nil ? 0 : 0.25,
-                              options: [.transitionCrossDissolve, .allowUserInteraction]) { context.coordinator.imageView.image = image }
+        let c = context.coordinator
+        c.onTap = onTap
+        c.detail = detail
+        c.allowsDetail = allowsDetail
+        if c.detailKey != detailKey {
+            c.detailKey = detailKey
+            c.clearDetail(forgetFailure: true)
+        }
+        if !keepsDetail, c.hasDetail || c.isRequesting {
+            c.clearDetail(forgetFailure: false)
+            if s.zoomScale != 1 { s.setZoomScale(1, animated: false) }
+        }
+        if !c.hasDetail { c.sourceSize = sourceSize }
+        if c.imageView.image !== image {
+            UIView.transition(with: c.imageView, duration: c.imageView.image == nil ? 0 : 0.25,
+                              options: [.transitionCrossDissolve, .allowUserInteraction]) { c.imageView.image = image }
         }
         DispatchQueue.main.async {
-            if s.zoomScale == 1 { context.coordinator.imageView.frame = s.bounds; s.contentSize = s.bounds.size }
+            if s.zoomScale == 1 { c.imageView.frame = s.bounds; s.contentSize = s.bounds.size }
+            c.updateZoomLimit()
+            c.refine()
         }
     }
 
-    final class Coordinator: NSObject, UIScrollViewDelegate {
+    @MainActor final class Coordinator: NSObject, UIScrollViewDelegate {
         let imageView = UIImageView()
+        let detailView = UIImageView()
+        weak var scrollView: UIScrollView?
         var onTap: () -> Void = {}
+        var detail: Detail?
+        var sourceSize: CGSize?
+        var detailKey: AnyHashable?
+        var allowsDetail = true
+        private var request: Task<Void, Never>?
+        private var generation = 0
+        private var shown = false
+        private var failed = false
+        var hasDetail: Bool { shown }
+        var isRequesting: Bool { request != nil }
+
         @objc func singleTap() { onTap() }
         func viewForZooming(in scrollView: UIScrollView) -> UIView? { imageView }
         @objc func doubleTap(_ g: UITapGestureRecognizer) {
             guard let s = g.view as? UIScrollView else { return }
             s.setZoomScale(s.zoomScale > 1 ? 1 : 3, animated: true)
+        }
+
+        func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) { refine() }
+        func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) { refine() }
+        func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) { if !decelerate { refine() } }
+
+        // where the aspect-fit image sits inside imageView.bounds
+        private var imageRect: CGRect? {
+            guard let size = imageView.image?.size, size.width > 0, size.height > 0 else { return nil }
+            return AVMakeRect(aspectRatio: size, insideRect: imageView.bounds)
+        }
+
+        func clearDetail(forgetFailure: Bool = true) {
+            request?.cancel(); request = nil
+            generation += 1
+            shown = false
+            if forgetFailure { failed = false }
+            detailView.image = nil
+            detailView.alpha = 0
+        }
+
+        // let it zoom to ~2 screen pixels per real image pixel
+        func updateZoomLimit() {
+            guard let s = scrollView, let rect = imageRect, rect.width > 0 else { return }
+            let screen = s.window?.screen.scale ?? 3
+            let native = sourceSize.map { $0.width / (rect.width * screen) } ?? 3
+            // never less than the old fixed 6x
+            s.maximumZoomScale = min(max(native * 2, 6), 16)
+        }
+
+        func refine() {
+            guard let s = scrollView, let rect = imageRect, let detail, let source = sourceSize,
+                  let base = imageView.image, s.bounds.width > 0, let window = s.window,
+                  window.bounds.intersects(s.convert(s.bounds, to: window).insetBy(dx: 2, dy: 2)) else { return }
+            let screen = window.screen.scale
+            let visible = s.convert(s.bounds, to: imageView).intersection(rect)
+            guard !visible.isNull, visible.width > 0, visible.height > 0 else { return }
+            let onScreen = visible.width * s.zoomScale * screen
+            let fraction = visible.width / rect.width
+            let basePixels = fraction * base.size.width * base.scale
+            let sourcePixels = fraction * source.width
+            // the preview already has enough pixels for what's on screen
+            if basePixels >= min(onScreen, sourcePixels) * 0.9 {
+                if s.zoomScale <= 1.01 { clearDetail() }
+                return
+            }
+            guard allowsDetail, !shown, !failed, request == nil else { return }
+            // a cancelled render still finishes (it can't be interrupted), so only the latest generation may touch state
+            generation += 1
+            let mine = generation
+            request = Task { [weak self] in
+                try? await Task.sleep(nanoseconds: 120_000_000)
+                guard !Task.isCancelled else { return }
+                let image = await detail()
+                let prepared = await image.map { UIImage(cgImage: $0) }?.byPreparingForDisplay()
+                guard let self, self.generation == mine else { return }
+                self.request = nil
+                guard let image, let rect = self.imageRect else { self.failed = true; return }
+                self.shown = true
+                self.sourceSize = CGSize(width: image.width, height: image.height)
+                self.updateZoomLimit()
+                self.detailView.image = prepared ?? UIImage(cgImage: image)
+                self.detailView.frame = rect
+                UIView.animate(withDuration: 0.2) { self.detailView.alpha = 1 }
+            }
         }
     }
 }
