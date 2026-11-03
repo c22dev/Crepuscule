@@ -1,5 +1,8 @@
 <div align="center">
-  <img src="docs/icon.png" width="128" alt="Crepuscule icon">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/icon-dark.png">
+    <img src="docs/icon.png" width="128" alt="Crepuscule icon">
+  </picture>
   <h1>Crepuscule</h1>
   <p>A Film RAW camera that lives on your iPhone</p>
 </div>
