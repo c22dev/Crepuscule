@@ -1,7 +1,7 @@
 // Crepuscule - CameraCapture.swift
 // Constantin Clerc (c22dev) - 0.1
 #if os(iOS)
-import AVFoundation
+@preconcurrency import AVFoundation
 import os
 import CoreMedia
 import UIKit
@@ -539,32 +539,31 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
     private func runBurst(_ plan: [BurstFrameSpec], format: OSType, gps: [String: Any]?, continuation c: CheckedContinuation<CaptureResult, Error>) {
         let maxChunk = max(output.maxBracketedCapturePhotoCount, 1)
         let chunks = stride(from: 0, to: plan.count, by: maxChunk).map { Array(plan[$0..<min($0 + maxChunk, plan.count)]) }
-        var frames: [(url: URL, spec: BurstFrameSpec?)] = []
-        var blur: [String: Float] = [:]
+        let run = BurstRun()
         let fov = device.map { Double($0.activeFormat.videoFieldOfView) } ?? 0
         let width = Int(output.maxPhotoDimensions.width)
-        func record(_ url: URL, _ spec: BurstFrameSpec, at time: Double?) {
+        @Sendable func record(_ url: URL, _ spec: BurstFrameSpec, at time: Double?) {
             guard let time, time.isFinite,
                   let px = motionGate.blurPixels(from: time, to: time + spec.durationSeconds, horizontalFOVDegrees: fov, imageWidth: width) else { return }
-            blur[url.lastPathComponent] = px
+            run.blur[url.lastPathComponent] = px
         }
-        func fail(_ error: Error) {
+        @Sendable func fail(_ error: Error) {
             restoreAutoExposure()
-            if let base = frames.first(where: { $0.spec?.role == .base }) ?? frames.first {
-                var result = CaptureResult(baseURL: base.url, frames: frames, cropInsets: currentCropInsets())
-                result.blurPixels = blur
+            if let base = run.frames.first(where: { $0.spec?.role == .base }) ?? run.frames.first {
+                var result = CaptureResult(baseURL: base.url, frames: run.frames, cropInsets: currentCropInsets())
+                result.blurPixels = run.blur
                 c.resume(returning: result)
             } else {
                 c.resume(throwing: error)
             }
         }
-        func next(_ index: Int) {
+        @Sendable func next(_ index: Int) {
             guard index < chunks.count else {
-                let base = frames.first { $0.spec?.role == .base } ?? frames.first
+                let base = run.frames.first { $0.spec?.role == .base } ?? run.frames.first
                 if let base {
                     restoreAutoExposure()
-                    var result = CaptureResult(baseURL: base.url, frames: frames, cropInsets: currentCropInsets())
-                    result.blurPixels = blur
+                    var result = CaptureResult(baseURL: base.url, frames: run.frames, cropInsets: currentCropInsets())
+                    result.blurPixels = run.blur
                     c.resume(returning: result)
                 } else { c.resume(throwing: CaptureError.noData) }
                 return
@@ -577,7 +576,7 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
                         do {
                             let data = try result.get()
                             let url = try write(data, suffix: "f\(chunk[0].sequence)")
-                            frames.append((url, chunk[0]))
+                            run.frames.append((url, chunk[0]))
                             record(url, chunk[0], at: lastShotTime)
                             queue.async { next(index + 1) }
                         } catch { fail(error) }
@@ -594,7 +593,6 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
             prepare(settings)
             apply(gps, to: settings)
             if output.isLensStabilizationDuringBracketedCaptureSupported { settings.isLensStabilizationEnabled = true }
-            var received = 0
             let delegate = BurstDelegate(queue: queue) { [self] result in
                 let times = pending[settings.uniqueID]?.times ?? []
                 pending[settings.uniqueID] = nil
@@ -605,9 +603,8 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
                         for (i, data) in datas.enumerated() {
                             let spec = chunk[min(i, chunk.count - 1)]
                             let url = try write(data, suffix: "f\(spec.sequence)")
-                            frames.append((url, spec))
+                            run.frames.append((url, spec))
                             record(url, spec, at: i < times.count ? times[i] : nil)
-                            received += 1
                         }
                         queue.async { next(index + 1) }
                     } catch { fail(error) }
@@ -662,6 +659,11 @@ extension CameraCapture: AVCaptureVideoDataOutputSampleBufferDelegate {
         }
         onFrame?(buffer)
     }
+}
+
+private final class BurstRun: @unchecked Sendable {
+    var frames: [(url: URL, spec: BurstFrameSpec?)] = []
+    var blur: [String: Float] = [:]
 }
 
 private final class BurstDelegate: NSObject, AVCapturePhotoCaptureDelegate {

@@ -228,6 +228,7 @@ private struct ViewfinderPane: View {
         GeometryReader { geo in
             let w = min(geo.size.width, geo.size.height * 3 / 4)
             let box = CGSize(width: w, height: w * 4 / 3)
+            let still = reduceMotion
             ZStack {
                 Group {
                     if !model.showLook, model.phase == .running, let session = model.captureSession, let queue = model.sessionQueue {
@@ -362,7 +363,7 @@ private struct ViewfinderPane: View {
             .frame(width: box.width, height: box.height)
             .clipped()
             .keyframeAnimator(initialValue: 0.0, trigger: model.flips) { content, turn in
-                content.rotation3DEffect(.degrees(reduceMotion ? 0 : (turn <= 90 ? turn : turn - 180)), axis: (0, 1, 0), perspective: 0.4)
+                content.rotation3DEffect(.degrees(still ? 0 : (turn <= 90 ? turn : turn - 180)), axis: (0, 1, 0), perspective: 0.4)
             } keyframes: { _ in
                 CubicKeyframe(0, duration: 0.01)
                 CubicKeyframe(180, duration: 0.5)
@@ -680,6 +681,7 @@ struct NewestPhotoButton: View {
     }
 
     var body: some View {
+        let still = reduceMotion
         let shape = ConcentricRectangle(uniformTopCorners: .fixed(Radius.thumb), bottomLeadingCorner: .concentric(minimum: .fixed(Radius.thumb)), bottomTrailingCorner: .fixed(Radius.thumb))
         Button(action: action) {
             ZStack {
@@ -703,7 +705,7 @@ struct NewestPhotoButton: View {
             .animation(Motion.smooth, value: library.newest?.id)
             .matchedTransitionSource(id: Self.heroID, in: hero) { $0.clipShape(RoundedRectangle(cornerRadius: Radius.thumb, style: .continuous)) }
             .keyframeAnimator(initialValue: 1.0, trigger: library.newest?.id) { content, scale in
-                content.scaleEffect(reduceMotion ? 1 : scale)
+                content.scaleEffect(still ? 1 : scale)
             } keyframes: { _ in
                 SpringKeyframe(0.86, duration: 0.12, spring: .snappy)
                 SpringKeyframe(1.0, duration: 0.45, spring: .bouncy(duration: 0.45, extraBounce: 0.15))

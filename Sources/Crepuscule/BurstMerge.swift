@@ -326,8 +326,9 @@ public enum BurstMerger {
         acc.weight.withUnsafeMutableBufferPointer { sw in
         acc.value.withUnsafeMutableBufferPointer { sv in
         base.cfa.data.withUnsafeBufferPointer { rb in
-        alt.cfa.data.withUnsafeBufferPointer { ab in
+        alt.cfa.data.withUnsafeBufferPointer { altData in
         c.v.withUnsafeBufferPointer { cb in
+            nonisolated(unsafe) let ab = altData
             DispatchQueue.concurrentPerform(iterations: H) { y in
                 let fyRaw = (Float(y) - 16) * 0.03125
                 var ty0 = Int(fyRaw), fy: Float = fyRaw >= 0 ? fyRaw - Float(Int(fyRaw)) : 0
