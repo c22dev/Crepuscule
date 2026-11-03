@@ -1,6 +1,6 @@
 .build/
 .swiftpm/
-Assets/
+/Assets/
 *.ipa
 Tests/
 App/Crepuscule.xcodeproj/xcuserdata/
