@@ -31,14 +31,16 @@ struct PhotoPager: View {
             Color.black.ignoresSafeArea()
             TabView(selection: $selection) {
                 ForEach(library.items.reversed()) { item in
-                    PhotoPage(library: library, item: item, isCurrent: item.id == selection) { withAnimation(Motion.fade) { chromeHidden.toggle() } }
+                    PhotoPage(library: library, item: item, isCurrent: item.id == selection, prefetches: editing == nil) { withAnimation(Motion.fade) { chromeHidden.toggle() } }
                         .tag(item.id).ignoresSafeArea()
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .ignoresSafeArea()
-            // the zoom render is a full-res image, drop it when moving on
-            .onChange(of: selection) { Task { await DetailEngine.shared.release() } }
+            .onChange(of: selection) {
+                let keep = library.item(selection).map(library.rawURL)
+                Task { if let keep { await DetailEngine.shared.release(keeping: keep) } else { await DetailEngine.shared.release() } }
+            }
             .onDisappear { Task { await DetailEngine.shared.release() } }
             VStack(spacing: 0) {
                 topBar
@@ -223,20 +225,23 @@ private struct PhotoPage: View {
     let library: Library
     let item: PhotoItem
     var isCurrent = true
+    // off in the editor, grade changes would queue full res renders that cant be cancelled
+    var prefetches = true
     var onTap: () -> Void = {}
     @State private var image: UIImage?
     @State private var failed: String?
     @State private var framed: CGSize?
 
     private struct RenderKey: Hashable { let grade: Grade; let merge: Int }
+    private struct PrefetchKey: Hashable { let render: RenderKey; let current: Bool; let merging: Bool; let enabled: Bool }
     private var key: RenderKey { RenderKey(grade: item.grade, merge: library.mergeStamp[item.id] ?? 0) }
 
     var body: some View {
         let url = library.rawURL(item), grade = item.grade, seed = item.seed
-        // only the visible page holds a full-res render, and not while a burst merge is using the memory
+        // only the visible page gets a full res render, never the photo a merge is rewriting
         let detail: ZoomableImage.Detail = { @Sendable in try? await DetailEngine.shared.fullResolution(url: url, grade: grade, seed: seed) }
         ZoomableImage(image: image ?? library.thumbnail(item.id), sourceSize: framed, detailKey: key,
-                      allowsDetail: isCurrent && library.merging.isEmpty, keepsDetail: isCurrent, onTap: onTap, detail: detail)
+                      allowsDetail: isCurrent && !library.merging.contains(item.id), keepsDetail: isCurrent, onTap: onTap, detail: detail)
             .overlay {
                 if let failed {
                     Text(failed).font(.footnote).foregroundStyle(Ink.stone).padding(30).multilineTextAlignment(.center)
@@ -255,17 +260,20 @@ private struct PhotoPage: View {
                     if image == nil { failed = "\(error)" }
                 }
             }
+            .task(id: PrefetchKey(render: key, current: isCurrent, merging: library.merging.contains(item.id), enabled: prefetches)) {
+                guard isCurrent, prefetches, !library.merging.contains(item.id) else { return }
+                try? await Task.sleep(for: .milliseconds(400))
+                guard !Task.isCancelled else { return }
+                _ = try? await DetailEngine.shared.fullResolution(url: url, grade: grade, seed: seed)
+            }
     }
 }
 
 struct ZoomableImage: UIViewRepresentable {
-    // the full-resolution export of this photo, shown over the preview once zoomed past what the preview holds
     typealias Detail = @Sendable () async -> CGImage?
     let image: UIImage?
-    // full res size of the framed image, nil until known
     var sourceSize: CGSize? = nil
     var detailKey: AnyHashable? = nil
-    // may start a full-res render now / may keep one on screen
     var allowsDetail = true
     var keepsDetail = true
     var onTap: () -> Void = {}
@@ -355,7 +363,6 @@ struct ZoomableImage: UIViewRepresentable {
         func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) { refine() }
         func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) { if !decelerate { refine() } }
 
-        // where the aspect-fit image sits inside imageView.bounds
         private var imageRect: CGRect? {
             guard let size = imageView.image?.size, size.width > 0, size.height > 0 else { return nil }
             return AVMakeRect(aspectRatio: size, insideRect: imageView.bounds)
@@ -370,12 +377,10 @@ struct ZoomableImage: UIViewRepresentable {
             detailView.alpha = 0
         }
 
-        // let it zoom to ~2 screen pixels per real image pixel
         func updateZoomLimit() {
             guard let s = scrollView, let rect = imageRect, rect.width > 0 else { return }
             let screen = s.window?.screen.scale ?? 3
             let native = sourceSize.map { $0.width / (rect.width * screen) } ?? 3
-            // never less than the old fixed 6x
             s.maximumZoomScale = min(max(native * 2, 6), 16)
         }
 
@@ -390,13 +395,12 @@ struct ZoomableImage: UIViewRepresentable {
             let fraction = visible.width / rect.width
             let basePixels = fraction * base.size.width * base.scale
             let sourcePixels = fraction * source.width
-            // the preview already has enough pixels for what's on screen
             if basePixels >= min(onScreen, sourcePixels) * 0.9 {
                 if s.zoomScale <= 1.01 { clearDetail() }
                 return
             }
             guard allowsDetail, !shown, !failed, request == nil else { return }
-            // a cancelled render still finishes (it can't be interrupted), so only the latest generation may touch state
+            // cancelled renders still finish so only the latest one touches state
             generation += 1
             let mine = generation
             request = Task { [weak self] in
