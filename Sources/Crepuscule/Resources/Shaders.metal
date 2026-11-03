@@ -363,9 +363,8 @@ kernel void cubicResizeVerticalToRGB16Packed(texture2d<float, access::read> inte
     dst[i] = ushort(v.r); dst[i + 1] = ushort(v.g); dst[i + 2] = ushort(v.b);
 }
 
-// night clean: dark flat areas take blurred luma/chroma, then a soft toe deepens the blacks.
-// src is the display encoded grade output, blurred and localMax are linear.
-// the mask reads the local max of a lightly blurred copy, so any light nearby turns it off (no halos)
+// src is display encoded, blurred and localMax are linear
+// mask uses the local max so any light nearby turns it off (no halos)
 struct NightCleanParams { float lo, hi, kLuma, kChroma, toe; };
 
 static inline float3 srgbToLinear(float3 c) {

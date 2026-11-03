@@ -64,7 +64,6 @@ final class GPUAccumulator: @unchecked Sendable {
     }
 }
 
-// compiles the merge / super res kernels ahead of time so the first burst after launch doesnt pay for it
 public enum ShaderWarmup {
     public static func mergeKernels() { _ = GPUAccumulator.shared }
 }

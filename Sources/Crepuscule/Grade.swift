@@ -50,7 +50,7 @@ public struct Grade: Codable, Hashable, Sendable {
     public var mirrored = false
     public var rotationQuarterTurns = 0
     public var fineRotationDegrees = 0.0
-    // set on night captures: sky noise cleanup + deeper blacks (optional so older grades still decode)
+    // night captures only, optional so older grades still decode
     public var nightClean: Bool?
 
     public init() {}

@@ -67,7 +67,6 @@ public final class ColorPipelineRenderer {
         ciContext = CIContext(mtlDevice: device)
     }
 
-    // builds every pipeline up front (they are otherwise made lazily on first use)
     public func prewarmPipelines() {
         for name in library.functionNames { _ = try? pso(name) }
     }
@@ -525,8 +524,7 @@ public final class ColorPipelineRenderer {
         return grade.nightClean == true ? try nightClean(final) : final
     }
 
-    // night clean, tuned on a 2880px export, so the radii scale with the image
-    // cleans dark flat areas (sky) and deepens the blacks, leaves anything near a light alone
+    // tuned on a 2880px export, radii scale with the image
     public func nightClean(_ graded: MTLTexture) throws -> MTLTexture {
         let w = graded.width, h = graded.height
         let k = Double(max(w, h)) / 2880
