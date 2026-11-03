@@ -2,7 +2,6 @@
 // Constantin Clerc (c22dev) - 0.1
 import Foundation
 
-// nil means auto, so leaving some unset gives shutter / iso / aperture priority
 public struct ManualSettings: Sendable, Equatable, Codable {
     public var iso: Float?
     public var duration: Double?
@@ -27,11 +26,10 @@ public struct ManualRange: Sendable, Equatable {
         self.minISO = minISO; self.maxISO = maxISO; self.minDuration = minDuration; self.maxDuration = maxDuration
         self.minAperture = minAperture; self.maxAperture = maxAperture; self.apertureStops = apertureStops; self.manualFocus = manualFocus
     }
-    // only the iphone 18 pro main camera so far
+    // only the 18 pro main cam so far
     public var variableAperture: Bool { maxAperture > minAperture + 0.05 }
 }
 
-// third stops, the numbers printed on real cameras
 public enum ManualStops {
     static let isoThirds: [Float] = [12, 16, 20, 25, 32, 40, 50, 64, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1250,
                                      1600, 2000, 2500, 3200, 4000, 5000, 6400, 8000, 10000, 12800, 16000, 20000, 25600]
@@ -50,7 +48,6 @@ public enum ManualStops {
         return device.count > 1 ? device : fit(apertureThirds, Double(r.minAperture), Double(r.maxAperture)).map { Float($0) }
     }
 
-    // keep the device ends reachable even when they sit between printed stops
     private static func fit<T: BinaryFloatingPoint>(_ stops: [T], _ lo: Double, _ hi: Double) -> [Double] {
         guard lo > 0, hi >= lo else { return [] }
         var out = stops.map(Double.init).filter { $0 >= lo * 0.999 && $0 <= hi * 1.001 }

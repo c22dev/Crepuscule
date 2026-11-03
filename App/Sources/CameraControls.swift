@@ -136,7 +136,6 @@ final class CameraControls: NSObject, AVCaptureSessionControlsDelegate, @uncheck
         iso = picker("ISO", "camera.metering.center.weighted", state.isoTitles, actions.iso)
         aperture = picker("Aperture", "camera.aperture", state.apertureTitles, actions.aperture)
         var room = session.maxControlsCount
-        // manual pickers only exist when opted in, and push the less used ones past the limit
         for control in [zoomSlider, s, shutter, iso, aperture, look, aspect, drive, lens].compactMap({ $0 as AVCaptureControl? }) where room > 0 && session.canAddControl(control) {
             session.addControl(control)
             room -= 1

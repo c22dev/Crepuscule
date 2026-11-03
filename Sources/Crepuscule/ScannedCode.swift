@@ -2,7 +2,6 @@
 // Constantin Clerc (c22dev) - 0.1
 import Foundation
 
-/// A machine-readable code payload, decoded into the thing it actually describes.
 public struct ScannedCode: Equatable, Sendable {
     public struct Event: Equatable, Sendable {
         public var title: String?
@@ -21,7 +20,6 @@ public struct ScannedCode: Equatable, Sendable {
         case phone(String)
         case wifi(ssid: String, password: String?, security: String?, hidden: Bool)
         case location(latitude: Double, longitude: Double, label: String?)
-        /// `vCard` is always a vCard 3.0 document, MECARD payloads are converted.
         case contact(name: String?, vCard: String)
         case event(Event)
         case product(String)
@@ -36,7 +34,6 @@ public struct ScannedCode: Equatable, Sendable {
         self.kind = Self.parse(raw.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
-    /// The URL that performs the code's natural action, when one exists.
     public var actionURL: URL? {
         switch kind {
         case .url(let url): return url
@@ -79,7 +76,6 @@ public struct ScannedCode: Equatable, Sendable {
         }
     }
 
-    /// Secondary line: what the tap will do, plus any extra content.
     public var subtitle: String? {
         switch kind {
         case .url(let url): return url.scheme.map { ["http", "https"].contains($0.lowercased()) } == true ? "Open in Safari" : "Open link"
@@ -111,8 +107,6 @@ public struct ScannedCode: Equatable, Sendable {
         case .text: return "doc.on.doc"
         }
     }
-
-    // MARK: - Parsing
 
     static func parse(_ s: String) -> Kind {
         guard !s.isEmpty else { return .text(s) }
@@ -202,7 +196,6 @@ public struct ScannedCode: Equatable, Sendable {
         guard !s.contains(where: \.isWhitespace) else { return nil }
         if let url = URL(string: s), let scheme = url.scheme?.lowercased(), scheme.first?.isLetter == true {
             if scheme == "http" || scheme == "https" { return url.host?.isEmpty == false ? url : nil }
-            // Bare "host:port" style strings aren't links.
             if Int(s.dropFirst(scheme.count + 1).prefix(while: \.isNumber)) != nil, !s.dropFirst(scheme.count + 1).hasPrefix("/") { return nil }
             return url
         }
@@ -210,9 +203,6 @@ public struct ScannedCode: Equatable, Sendable {
         return nil
     }
 
-    // MARK: MECARD-style "KEY:value;KEY:value;;"
-
-    /// Splits `KEY:value;` fields, honouring backslash escapes. Repeated keys are all kept.
     static func fieldLists(_ s: String) -> [String: [String]] {
         var out: [String: [String]] = [:]
         var key = "", value = "", inKey = true, escaped = false
@@ -263,7 +253,6 @@ public struct ScannedCode: Equatable, Sendable {
         for v in f["TEL-AV"] ?? [] where !v.isEmpty { lines.append("TEL;TYPE=VIDEO:" + esc(v)) }
         for v in f["EMAIL"] ?? [] where !v.isEmpty { lines.append("EMAIL;TYPE=INTERNET:" + esc(v)) }
         for v in f["ADR"] ?? [] where !v.isEmpty {
-            // MECARD ADR is comma-separated: PO box, extended, street, city, region, postal code, country.
             let p = v.split(separator: ",", omittingEmptySubsequences: false).map { esc($0.trimmingCharacters(in: .whitespaces)) }
             lines.append("ADR:" + (p.count == 7 ? p.joined(separator: ";") : ";;" + esc(v) + ";;;;"))
         }
@@ -273,8 +262,6 @@ public struct ScannedCode: Equatable, Sendable {
         lines.append("END:VCARD")
         return lines.joined(separator: "\r\n") + "\r\n"
     }
-
-    // MARK: vCard / iCalendar content lines
 
     struct Property { var name: String; var params: [String: String]; var value: String }
 
@@ -293,7 +280,6 @@ public struct ScannedCode: Equatable, Sendable {
                 let kv = p.split(separator: "=", maxSplits: 1).map(String.init)
                 params[kv[0].uppercased()] = kv.count > 1 ? kv[1].trimmingCharacters(in: CharacterSet(charactersIn: "\"")) : ""
             }
-            // Drop vCard group prefixes like "item1.TEL".
             let name = rawName.split(separator: ".").last.map { $0.uppercased() } ?? rawName.uppercased()
             return Property(name: name, params: params, value: String(line[line.index(after: colon)...]))
         }
@@ -335,7 +321,7 @@ public struct ScannedCode: Equatable, Sendable {
             }
         }
         if e.allDay, let start = e.start, let end = e.end, end > start {
-            // iCalendar all-day DTEND is exclusive.
+            // all day DTEND is exclusive
             e.end = Calendar(identifier: .gregorian).date(byAdding: .second, value: -1, to: end)
         }
         return e
@@ -365,12 +351,10 @@ public struct ScannedCode: Equatable, Sendable {
         return f.date(from: v).map { ($0, false) }
     }
 
-    // MARK: Helpers
-
     private static func encode(_ s: String, keeping extra: String = "") -> String {
         var allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
         allowed.formUnion(CharacterSet(charactersIn: extra))
-        // `alphanumerics` covers non-ASCII letters; restrict to ASCII so they get percent-encoded.
+        // alphanumerics includes non ascii, restrict so they get percent encoded
         allowed = allowed.intersection(CharacterSet(charactersIn: Unicode.Scalar(0x21)!...Unicode.Scalar(0x7E)!))
         return s.addingPercentEncoding(withAllowedCharacters: allowed) ?? s
     }

@@ -95,7 +95,6 @@ struct ManualPanel: View {
                 .accessibilityLabel(dial.title)
                 .accessibilityValue(value(dial))
             if fullyManual {
-                // in full manual the bias does nothing, the meter says how far off you are
                 VStack(spacing: 0) {
                     Text("Meter").engraved(size: 7)
                     Text(ExposureText.ev(model.reading.meterOffset)).font(.instrument(11, weight: .semibold))
@@ -142,7 +141,6 @@ struct ManualPanel: View {
         }
     }
 
-    // starts from what auto is doing so the first nudge is one stop away, not a jump
     private func index(_ d: ManualDial) -> Int {
         let r = model.reading
         switch d {
@@ -186,7 +184,6 @@ struct ManualPanel: View {
     }
 }
 
-// drag-to-scrub ruler, one tick per stop
 private struct StopRuler: View {
     let count: Int
     let index: Int

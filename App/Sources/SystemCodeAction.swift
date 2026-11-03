@@ -1,6 +1,6 @@
 // Crepuscule - SystemCodeAction.swift
 // Constantin Clerc (c22dev) - 0.1
-// uses the private BarcodeSupport framework for system code actions (not app store safe)
+// private BarcodeSupport, not app store safe
 import Foundation
 import ObjectiveC
 import UIKit
