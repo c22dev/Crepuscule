@@ -231,7 +231,7 @@ private struct ViewfinderPane: View {
             ZStack {
                 Group {
                     if !model.showLook, model.phase == .running, let session = model.captureSession, let queue = model.sessionQueue {
-                        PreviewLayerView(session: session, sessionQueue: queue, angle: model.previewAngle)
+                        PreviewLayerView(session: session, sessionQueue: queue, angle: model.previewAngle, lensID: model.active?.deviceID)
                             .scaleEffect(model.active?.cropFactor ?? 1)
                             .animation(Motion.smooth, value: model.active?.cropFactor)
                     } else {

@@ -62,6 +62,7 @@ struct PreviewLayerView: UIViewRepresentable {
     let session: AVCaptureSession
     let sessionQueue: DispatchQueue
     let angle: CGFloat
+    let lensID: String?
 
     final class Host: UIView {
         private var sessionQueue: DispatchQueue?
