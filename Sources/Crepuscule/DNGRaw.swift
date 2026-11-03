@@ -65,26 +65,36 @@ struct DNGFile {
         let across = (w + pieceW - 1) / pieceW
         for (i, offset) in offsets.enumerated() {
             guard i < counts.count, offset + counts[i] <= data.count else { throw PipelineError.invalidDNG("raw data out of range") }
-            let x0 = (i % across) * pieceW, y0 = (i / across) * pieceH
-            let bytes = data[offset..<(offset + counts[i])]
-            let piece: (samples: [UInt16], width: Int, height: Int)
-            switch compression {
-            case 7: piece = try LosslessJPEG.decode(bytes)
-            case 1:
-                guard bits == 16 else { throw PipelineError.invalidDNG("unsupported bit depth \(bits)") }
-                let n = counts[i] / 2
-                piece = ((0..<n).map { reader.u16(offset + $0 * 2) }, pieceW, n / pieceW)
-            default: throw PipelineError.invalidDNG("unsupported compression \(compression)")
-            }
-            let rowLen = piece.samples.count / max(piece.height, 1)
-            for r in 0..<min(pieceH, h - y0) {
-                let dst = (y0 + r) * w + x0
-                let src = r * rowLen
-                guard src < piece.samples.count else { break }
-                let n = min(min(pieceW, w - x0), piece.samples.count - src)
-                for c in 0..<n { out[dst + c] = piece.samples[src + c] }
+        }
+        guard compression == 7 || compression == 1 else { throw PipelineError.invalidDNG("unsupported compression \(compression)") }
+        guard compression != 1 || bits == 16 else { throw PipelineError.invalidDNG("unsupported bit depth \(bits)") }
+        let lock = NSLock()
+        var failure: Error?
+        out.withUnsafeMutableBufferPointer { o in
+            DispatchQueue.concurrentPerform(iterations: offsets.count) { i in
+                let offset = offsets[i]
+                let x0 = (i % across) * pieceW, y0 = (i / across) * pieceH
+                let piece: (samples: [UInt16], width: Int, height: Int)
+                if compression == 7 {
+                    do { piece = try LosslessJPEG.decode(data[offset..<(offset + counts[i])]) } catch {
+                        lock.lock(); if failure == nil { failure = error }; lock.unlock()
+                        return
+                    }
+                } else {
+                    let n = counts[i] / 2
+                    piece = ((0..<n).map { reader.u16(offset + $0 * 2) }, pieceW, n / pieceW)
+                }
+                let rowLen = piece.samples.count / max(piece.height, 1)
+                for r in 0..<min(pieceH, h - y0) {
+                    let dst = (y0 + r) * w + x0
+                    let src = r * rowLen
+                    guard src < piece.samples.count else { break }
+                    let n = min(min(pieceW, w - x0), piece.samples.count - src)
+                    for c in 0..<n { o[dst + c] = piece.samples[src + c] }
+                }
             }
         }
+        if let failure { throw failure }
         if let table = e[50712].map({ reader.ints($0) }), !table.isEmpty {
             for i in out.indices { out[i] = UInt16(clamping: table[min(Int(out[i]), table.count - 1)]) }
         }
