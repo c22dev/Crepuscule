@@ -464,4 +464,5 @@ enum ExposureText {
         return "1/\(Int((1 / s).rounded()))"
     }
     static func ev(_ v: Float) -> String { String(format: "%+.1f", v) }
+    static func aperture(_ f: Float) -> String { f >= 10 ? String(format: "ƒ/%.0f", f) : String(format: "ƒ/%.1f", f) }
 }

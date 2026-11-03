@@ -222,8 +222,16 @@ final class DemoCameraBackend: CameraBackend {
     func setNightBursts(_ on: Bool) {}
     func setCodeScanning(_ on: Bool, onCode: ((String) -> Void)?) {}
     func setProRAWPreferred(_ on: Bool) async -> Bool { false }
+    private var manual = ManualSettings()
+    func setManual(_ m: ManualSettings) { queue.async { self.manual = m } }
+    func manualRange() -> ManualRange? {
+        ManualRange(minISO: 32, maxISO: 3200, minDuration: 1.0 / 20000, maxDuration: 1, minAperture: 1.4, maxAperture: 4, manualFocus: true)
+    }
     func reading() -> ExposureReading? {
-        ExposureReading(iso: 125, duration: 1.0 / 240, aperture: 1.8, meterOffset: 0, bias: queue.sync { bias })
+        queue.sync {
+            ExposureReading(iso: manual.iso ?? 125, duration: manual.duration ?? 1.0 / 240, aperture: manual.aperture ?? 1.8, meterOffset: 0, bias: bias,
+                            lensPosition: manual.lensPosition ?? 0.6)
+        }
     }
     func captureAngle() -> CGFloat? { 90 }
 

@@ -77,6 +77,8 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
     public let directory: URL
 
     public private(set) var prefersProRAW = false
+    // queue only
+    private var manual = ManualSettings()
 
     public init(directory: URL) { self.directory = directory }
 
@@ -95,7 +97,6 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
         try await install(d)
         return mode != before
     }
-
 
     public static func availableLenses() -> [CameraLens] {
         discovery().flatMap { d -> [CameraLens] in
@@ -177,6 +178,8 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
                         if d.exposureMode == .custom || d.exposureMode == .locked, d.isExposureModeSupported(.continuousAutoExposure) {
                             d.exposureMode = .continuousAutoExposure
                         }
+                        // new device starts on auto, manual values carry over clamped to its range
+                        applyManual(d, was: ManualSettings())
                         d.unlockForConfiguration()
                     }
                     selectLargestRawDimensions(d)
@@ -212,11 +215,73 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
             exposureLocked = false; neutral = nil
             guard let device, (try? device.lockForConfiguration()) != nil else { return }
             defer { device.unlockForConfiguration() }
-            if device.isFocusPointOfInterestSupported { device.focusPointOfInterest = point }
-            if device.isFocusModeSupported(.autoFocus) { device.focusMode = .autoFocus }
+            if manual.lensPosition == nil {
+                if device.isFocusPointOfInterestSupported { device.focusPointOfInterest = point }
+                if device.isFocusModeSupported(.autoFocus) { device.focusMode = .autoFocus }
+            }
+            // in manual the point still steers the meter that priority modes follow
             if device.isExposurePointOfInterestSupported { device.exposurePointOfInterest = point }
-            if device.isExposureModeSupported(.continuousAutoExposure) { device.exposureMode = .continuousAutoExposure }
+            if !manual.exposureManual, device.isExposureModeSupported(.continuousAutoExposure) { device.exposureMode = .continuousAutoExposure }
         }
+    }
+
+    public func setManual(_ m: ManualSettings) {
+        queue.async { [self] in
+            let was = manual
+            manual = m
+            guard let device, (try? device.lockForConfiguration()) != nil else { return }
+            defer { device.unlockForConfiguration() }
+            if m.exposureManual { exposureLocked = false; neutral = nil }
+            applyManual(device, was: was)
+        }
+    }
+
+    public func manualRange() -> ManualRange? {
+        guard let device else { return nil }
+        let f = device.activeFormat
+        var lo = device.lensAperture, hi = device.lensAperture, stops: [Float] = []
+        if #available(iOS 27.0, *), f.maxLensAperture > 0 {
+            lo = f.minLensAperture; hi = f.maxLensAperture; stops = f.recommendedLensApertureStops
+        }
+        return ManualRange(minISO: f.minISO, maxISO: f.maxISO,
+                           minDuration: CMTimeGetSeconds(f.minExposureDuration), maxDuration: CMTimeGetSeconds(f.maxExposureDuration),
+                           minAperture: lo, maxAperture: hi, apertureStops: stops,
+                           manualFocus: device.isLockingFocusWithCustomLensPositionSupported)
+    }
+
+    // config must be locked
+    private func applyManual(_ device: AVCaptureDevice, was: ManualSettings) {
+        if let p = manual.lensPosition, device.isLockingFocusWithCustomLensPositionSupported {
+            device.setFocusModeLocked(lensPosition: min(max(p, 0), 1), completionHandler: nil)
+        } else if was.lensPosition != nil, device.isFocusModeSupported(.continuousAutoFocus) {
+            device.focusMode = .continuousAutoFocus
+        }
+        if manual.exposureManual { applyManualExposure(device) }
+        else if was.exposureManual, device.exposureMode == .custom, device.isExposureModeSupported(.continuousAutoExposure) {
+            device.exposureMode = .continuousAutoExposure
+        }
+    }
+
+    // unset values go to the system's own priority auto, which also follows the bias
+    private func applyManualExposure(_ device: AVCaptureDevice) {
+        guard device.isExposureModeSupported(.custom) else { return }
+        let f = device.activeFormat
+        let iso = manual.iso.map { min(max($0, f.minISO), f.maxISO) }
+        let duration = manual.duration.map {
+            CMTime(seconds: min(max($0, CMTimeGetSeconds(f.minExposureDuration)), CMTimeGetSeconds(f.maxExposureDuration)), preferredTimescale: 1_000_000)
+        }
+        if #available(iOS 27.0, *) {
+            let variable = f.maxLensAperture > f.minLensAperture + 0.05
+            let aperture = manual.aperture.flatMap { variable ? min(max($0, f.minLensAperture), f.maxLensAperture) : nil }
+            let wanted = (aperture ?? (variable ? AVCaptureDevice.autoLensAperture : AVCaptureDevice.currentLensAperture),
+                          duration ?? AVCaptureDevice.autoExposureDuration, iso ?? AVCaptureDevice.autoISO)
+            if f.supportsExposureModeCustom(lensAperture: wanted.0, duration: wanted.1, iso: wanted.2) {
+                device.setExposureModeCustom(lensAperture: wanted.0, duration: wanted.1, iso: wanted.2, completionHandler: nil)
+                return
+            }
+        }
+        // no priority mode for this combo, hold the free side where auto left it
+        device.setExposureModeCustom(duration: duration ?? AVCaptureDevice.currentExposureDuration, iso: iso ?? AVCaptureDevice.currentISO, completionHandler: nil)
     }
 
     public func setExposureBias(_ stops: Float) {
@@ -330,14 +395,15 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
     public func reading() -> ExposureReading? {
         guard let device else { return nil }
         return ExposureReading(iso: device.iso, duration: CMTimeGetSeconds(device.exposureDuration), aperture: device.lensAperture,
-                               meterOffset: device.exposureTargetOffset, bias: device.exposureTargetBias)
+                               meterOffset: device.exposureTargetOffset, bias: device.exposureTargetBias, lensPosition: device.lensPosition)
     }
 
     public func runDrive(mode drive: DriveMode, timer: SelfTimer, rotationAngle: CGFloat?, progress: @escaping @Sendable (DriveProgress) -> Void) async throws -> [CaptureResult] {
         let base = reading()
         let width = output.maxPhotoDimensions.width
         let fov = device.map { Double($0.activeFormat.videoFieldOfView) } ?? 70
-        let useNative = drive.isBracket && bracketMetering == .native && !exposureLocked && mode == .bayerRAW
+        let manualExposure = queue.sync { manual.exposureManual }
+        let useNative = drive.isBracket && bracketMetering == .native && !exposureLocked && !manualExposure && mode == .bayerRAW
             && output.maxBracketedCapturePhotoCount >= drive.shots
         let native = NativeBracket()
         let runner = DriveRunner<CaptureResult>(mode: drive, timer: timer, shoot: { [self] ev in
@@ -345,7 +411,7 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
                 if useNative, let i = drive.evOffsets.firstIndex(of: ev) {
                     return try await native.frame(i) { try await self.captureNativeBracket(evs: drive.evOffsets, base: base, rotationAngle: rotationAngle) }
                 }
-                if bracketMetering == .closedLoop, !exposureLocked { return try await captureClosedLoopBracketFrame(ev: ev, base: base, rotationAngle: rotationAngle) }
+                if bracketMetering == .closedLoop, !exposureLocked, !manualExposure { return try await captureClosedLoopBracketFrame(ev: ev, base: base, rotationAngle: rotationAngle) }
                 return try await captureBracketFrame(ev: ev, base: base, rotationAngle: rotationAngle)
             }
             return try await capture(hints: currentHints(), rotationAngle: rotationAngle)
@@ -528,7 +594,7 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
                         let fov = Double(f.videoFieldOfView) * .pi / 180
                         // blur is judged in output pixels, super res upscales the crop up to 2x
                         let srScale = zoomCropFactor >= BurstZoom.superResCrop ? min(zoomCropFactor, 2) : 1
-                        let night = nightBursts && fov > 0
+                        let night = nightBursts && fov > 0 && !manual.exposureManual
                             ? NightBurst(rotationRate: motionGate.rotationRate, pixelsPerRadian: Double(output.maxPhotoDimensions.width) / fov * srScale) : nil
                         let zoom = BurstZoom(cropFactor: zoomCropFactor,
                                              focalLength: Double(CameraLens.equivalentFocalLength(horizontalFOVDegrees: Double(f.videoFieldOfView))) * zoomCropFactor,
@@ -536,7 +602,8 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
                                              pixelsPerRadian: fov > 0 ? Double(output.maxPhotoDimensions.width) / fov * srScale : 0)
                         meterLog.notice("[Burst] meter locked ISO \(Int(device.iso), privacy: .public) @ 1/\(Int((1 / max(CMTimeGetSeconds(device.exposureDuration), 1e-6)).rounded()), privacy: .public), bias \(String(format: "%+.2f", device.exposureTargetBias), privacy: .public) (offset \(String(format: "%+.2f", device.exposureTargetOffset), privacy: .public), adjusting \(device.isAdjustingExposure ? 1 : 0, privacy: .public), mode \(device.exposureMode.rawValue, privacy: .public))")
                         let plan = BurstPlanner.plan(iso: device.iso, duration: CMTimeGetSeconds(device.exposureDuration), limits: limits,
-                                                     hints: hints, highlightRetentionStops: highlightRetentionStops, night: night, zoom: zoom)
+                                                     hints: hints, highlightRetentionStops: highlightRetentionStops, night: night,
+                                                     zoom: manual.exposureManual ? nil : zoom)
                         runBurst(plan, format: format, gps: gpsMetadata, continuation: c)
                     }
                 } catch { c.resume(throwing: error) }
@@ -655,7 +722,8 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
 
     private func restoreAutoExposure() {
         guard let device, device.exposureMode == .custom, (try? device.lockForConfiguration()) != nil else { return }
-        if exposureLocked { shiftLocked(device, bias: currentBias) } else { device.exposureMode = .continuousAutoExposure }
+        if manual.exposureManual { applyManualExposure(device) }
+        else if exposureLocked { shiftLocked(device, bias: currentBias) } else { device.exposureMode = .continuousAutoExposure }
         device.unlockForConfiguration()
     }
 

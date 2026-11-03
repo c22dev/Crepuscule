@@ -27,6 +27,7 @@
 		6F9D266342873FD0DFC73F5F /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56951F2F9164E869A46C1079 /* SettingsScreen.swift */; };
 		790E0DFAB366BA5A42171C07 /* Viewfinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 091A4E0C4D4A7C2C8EFABD6D /* Viewfinder.swift */; };
 		8106BB8737286BE73948BECE /* PhotoPager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A4E3233863A5AD85DF65D87 /* PhotoPager.swift */; };
+		8E252EA657C81355B21209F3 /* ManualControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4BAB29C7826B442684AE0F /* ManualControls.swift */; };
 		A67B37C0ED3D432D4383FB52 /* LockedShot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD9315953D304ED69E62C5E /* LockedShot.swift */; };
 		AB6AD065504C43E2749A6A39 /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FED7960963153E604D1A867 /* CameraView.swift */; };
 		AE3EA1C92B6ECD3BE4AC86F4 /* LockedCaptureExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 736082F7692BCB83D648243D /* LockedCaptureExtension.swift */; };
@@ -94,6 +95,7 @@
 		3FA83503DB4FEF5386F1E2BC /* CrepusculeWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = CrepusculeWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		3FF92C6EB59A9CAC113B8D73 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		426D6277040F0CFD74832446 /* CrepusculeControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrepusculeControls.swift; sourceTree = "<group>"; };
+		4C4BAB29C7826B442684AE0F /* ManualControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualControls.swift; sourceTree = "<group>"; };
 		53A2AEEBB86A7DFF01052611 /* IntentRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentRouter.swift; sourceTree = "<group>"; };
 		56951F2F9164E869A46C1079 /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
 		570DD082E0566D981E7E08A0 /* CameraControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraControls.swift; sourceTree = "<group>"; };
@@ -198,6 +200,7 @@
 				A50FA3696D233F15E1B0889A /* Library.swift */,
 				9E61788DA3FE29FF0859094D /* LibraryScreen.swift */,
 				37400FCD3057839C129A3B0A /* LockedImport.swift */,
+				4C4BAB29C7826B442684AE0F /* ManualControls.swift */,
 				0A4E3233863A5AD85DF65D87 /* PhotoPager.swift */,
 				214AEDE9732E66C3281B0FE5 /* RenderEngine.swift */,
 				56951F2F9164E869A46C1079 /* SettingsScreen.swift */,
@@ -375,6 +378,7 @@
 				6259188576D897865B8AEEAA /* LibraryScreen.swift in Sources */,
 				F2649A55E4C15FD471B0E854 /* LockedImport.swift in Sources */,
 				48BCB05E58DCB6858B6B0627 /* LockedShot.swift in Sources */,
+				8E252EA657C81355B21209F3 /* ManualControls.swift in Sources */,
 				8106BB8737286BE73948BECE /* PhotoPager.swift in Sources */,
 				5A56BFBABFCBE77F2E0CB311 /* RenderEngine.swift in Sources */,
 				6F9D266342873FD0DFC73F5F /* SettingsScreen.swift in Sources */,

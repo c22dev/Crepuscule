@@ -17,6 +17,12 @@ final class CameraControls: NSObject, AVCaptureSessionControlsDelegate, @uncheck
         var aspect: Int
         var driveTitles: [String]
         var drive: Int
+        var shutterTitles: [String]
+        var shutter: Int
+        var isoTitles: [String]
+        var iso: Int
+        var apertureTitles: [String]
+        var aperture: Int
     }
     struct Actions {
         var bias: @MainActor (Float) -> Void
@@ -25,6 +31,9 @@ final class CameraControls: NSObject, AVCaptureSessionControlsDelegate, @uncheck
         var look: @MainActor (Int) -> Void
         var aspect: @MainActor (Int) -> Void
         var drive: @MainActor (Int) -> Void
+        var shutter: @MainActor (Int) -> Void
+        var iso: @MainActor (Int) -> Void
+        var aperture: @MainActor (Int) -> Void
         var fullscreen: @MainActor (Bool) -> Void
     }
 
@@ -39,6 +48,9 @@ final class CameraControls: NSObject, AVCaptureSessionControlsDelegate, @uncheck
     private var look: AVCaptureIndexPicker?
     private var aspect: AVCaptureIndexPicker?
     private var drive: AVCaptureIndexPicker?
+    private var shutter: AVCaptureIndexPicker?
+    private var iso: AVCaptureIndexPicker?
+    private var aperture: AVCaptureIndexPicker?
     private var titles: [[String]] = []
     private var attached = false
     private var slidBias: Float?
@@ -58,6 +70,7 @@ final class CameraControls: NSObject, AVCaptureSessionControlsDelegate, @uncheck
                 attached = true
             }
             let wanted = [state.lensTitles, state.lookTitles, state.aspectTitles, state.driveTitles,
+                          state.shutterTitles, state.isoTitles, state.apertureTitles,
                           [state.zoomRange.map { "\($0)" } ?? "", state.zoomStops.map { "\($0)" }.joined(separator: ",")]]
             if wanted != titles {
                 titles = wanted
@@ -78,6 +91,9 @@ final class CameraControls: NSObject, AVCaptureSessionControlsDelegate, @uncheck
         set(look, state.look)
         set(aspect, state.aspect)
         set(drive, state.drive)
+        set(shutter, state.shutter)
+        set(iso, state.iso)
+        set(aperture, state.aperture)
     }
 
     private func set(_ picker: AVCaptureIndexPicker?, _ index: Int) {
@@ -116,8 +132,12 @@ final class CameraControls: NSObject, AVCaptureSessionControlsDelegate, @uncheck
         look = picker("Look", "camera.filters", state.lookTitles, actions.look)
         aspect = picker("Aspect Ratio", "aspectratio", state.aspectTitles, actions.aspect)
         drive = picker("Drive", "square.stack.3d.down.right", state.driveTitles, actions.drive)
+        shutter = picker("Shutter", "timer", state.shutterTitles, actions.shutter)
+        iso = picker("ISO", "camera.metering.center.weighted", state.isoTitles, actions.iso)
+        aperture = picker("Aperture", "camera.aperture", state.apertureTitles, actions.aperture)
         var room = session.maxControlsCount
-        for control in [zoomSlider, s, look, aspect, drive, lens].compactMap({ $0 as AVCaptureControl? }) where room > 0 && session.canAddControl(control) {
+        // manual pickers only exist when opted in, and push the less used ones past the limit
+        for control in [zoomSlider, s, shutter, iso, aperture, look, aspect, drive, lens].compactMap({ $0 as AVCaptureControl? }) where room > 0 && session.canAddControl(control) {
             session.addControl(control)
             room -= 1
         }

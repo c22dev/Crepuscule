@@ -30,6 +30,8 @@ protocol CameraBackend: AnyObject {
     func setNightBursts(_ on: Bool)
     func setCodeScanning(_ on: Bool, onCode: ((String) -> Void)?)
     @discardableResult func setProRAWPreferred(_ on: Bool) async -> Bool
+    func setManual(_ m: ManualSettings)
+    func manualRange() -> ManualRange?
     func reading() -> ExposureReading?
     func captureAngle() -> CGFloat?
     func shoot(mode: DriveMode, timer: SelfTimer, stack: Bool, retention: Double, metering: CameraCapture.BracketMetering, crop: Double, progress: @escaping @Sendable (DriveProgress) -> Void) async throws -> [CaptureResult]
@@ -92,6 +94,8 @@ final class DeviceCameraBackend: CameraBackend {
     func setNightBursts(_ on: Bool) { capture.nightBursts = on }
     func setCodeScanning(_ on: Bool, onCode: ((String) -> Void)?) { capture.onCode = onCode; capture.setCodeScanning(on) }
     @discardableResult func setProRAWPreferred(_ on: Bool) async -> Bool { (try? await capture.setPrefersProRAW(on)) ?? false }
+    func setManual(_ m: ManualSettings) { capture.setManual(m) }
+    func manualRange() -> ManualRange? { capture.manualRange() }
     func reading() -> ExposureReading? { capture.reading() }
     func captureAngle() -> CGFloat? { rotation?.videoRotationAngleForHorizonLevelCapture }
     func shoot(mode: DriveMode, timer: SelfTimer, stack: Bool, retention: Double, metering: CameraCapture.BracketMetering, crop: Double, progress: @escaping @Sendable (DriveProgress) -> Void) async throws -> [CaptureResult] {
@@ -228,11 +232,17 @@ final class CameraModel {
         didSet { UserDefaults.standard.set(nightBursts, forKey: "nightBursts"); backend.setNightBursts(nightBursts); publishLockedContext() }
     }
     var nightActive: Bool {
-        nightBursts && library.burstMerge && formatLabel != "PRORAW" && NightBurst.applies(iso: reading.iso, duration: reading.duration)
+        nightBursts && !manual.exposureManual && library.burstMerge && formatLabel != "PRORAW" && NightBurst.applies(iso: reading.iso, duration: reading.duration)
     }
     var scanCodes = UserDefaults.standard.object(forKey: "scanCodesInViewfinder") as? Bool ?? true {
         didSet { UserDefaults.standard.set(scanCodes, forKey: "scanCodesInViewfinder"); syncScanning() }
     }
+    // values reset to auto each launch
+    var manualOpen = false
+    var manualDial = ManualDial.shutter
+    private(set) var manual = ManualSettings()
+    private(set) var manualRange: ManualRange?
+    var isAuto: Bool { manual.isAuto }
     var scannedCode: ScannedCode?
     var codeAction: SystemCodeAction?
     private var codeExpiry: Task<Void, Never>?
@@ -399,6 +409,7 @@ final class CameraModel {
             active = result.active
             pump.set(cropFactor: active?.cropFactor ?? 1)
             formatLabel = backend.formatLabel
+            manualRange = backend.manualRange()
             backend.setShutterLimit(shutterLimit > 0 ? shutterLimit : nil)
             backend.setMuteShutter(muteShutter)
             backend.setNightBursts(nightBursts)
@@ -459,6 +470,7 @@ final class CameraModel {
     }
 
     func lockExposure(at p: CGPoint) {
+        guard !manual.exposureManual else { notice = "Exposure is manual. Set ISO and shutter to Auto to lock it."; return }
         UserDefaults.standard.set(true, forKey: "lockHintShown")
         Task {
             exposureLocked = await backend.lockExposure(atViewPoint: sensorPoint(p), front: isFront)
@@ -505,8 +517,18 @@ final class CameraModel {
             aspectTitles: AspectRatioPreset.pickable.map(\.label),
             aspect: AspectRatioPreset.pickable.firstIndex(of: aspect) ?? 0,
             driveTitles: DriveMode.allCases.map(\.title),
-            drive: DriveMode.allCases.firstIndex(of: drive) ?? 0)
+            drive: DriveMode.allCases.firstIndex(of: drive) ?? 0,
+            shutterTitles: ["Auto"] + shutterStops.map { ExposureText.shutter($0) },
+            shutter: manual.duration.map { ManualStops.nearest($0, in: shutterStops) + 1 } ?? 0,
+            isoTitles: ["Auto"] + isoStops.map { "ISO \(Int($0))" },
+            iso: manual.iso.map { ManualStops.nearest($0, in: isoStops) + 1 } ?? 0,
+            apertureTitles: apertureStops.isEmpty ? [] : ["Auto"] + apertureStops.map { ExposureText.aperture($0) },
+            aperture: manual.aperture.map { ManualStops.nearest($0, in: apertureStops) + 1 } ?? 0)
     }
+
+    var isoStops: [Float] { manualRange.map(ManualStops.iso(in:)) ?? [] }
+    var shutterStops: [Double] { manualRange.map(ManualStops.shutter(in:)) ?? [] }
+    var apertureStops: [Float] { manualRange.map(ManualStops.aperture(in:)) ?? [] }
 
     private func attachControls() {
         guard let captureSession, let sessionQueue = backend.sessionQueue else { return }
@@ -528,6 +550,18 @@ final class CameraModel {
             },
             aspect: { [weak self] in self?.setAspect(AspectRatioPreset.pickable[$0]) },
             drive: { [weak self] in self?.drive = DriveMode.allCases[$0]; Haptics.tick() },
+            shutter: { [weak self] i in
+                guard let self else { return }
+                var m = manual; m.duration = i > 0 && i <= shutterStops.count ? shutterStops[i - 1] : nil; setManual(m)
+            },
+            iso: { [weak self] i in
+                guard let self else { return }
+                var m = manual; m.iso = i > 0 && i <= isoStops.count ? isoStops[i - 1] : nil; setManual(m)
+            },
+            aperture: { [weak self] i in
+                guard let self else { return }
+                var m = manual; m.aperture = i > 0 && i <= apertureStops.count ? apertureStops[i - 1] : nil; setManual(m)
+            },
             fullscreen: { [weak self] in self?.controlsFullscreen = $0 }), sessionQueue: sessionQueue)
         controls?.attach(session: captureSession, state: controlState)
     }
@@ -576,6 +610,11 @@ final class CameraModel {
                 active = lens
                 pump.set(cropFactor: lens.cropFactor)
                 formatLabel = backend.formatLabel
+                manualRange = backend.manualRange()
+                var kept = manual
+                if manualRange?.variableAperture != true { kept.aperture = nil }
+                if manualRange?.manualFocus != true { kept.lensPosition = nil }
+                if kept != manual { setManual(kept) }
                 bias = 0
                 exposureLocked = false
             } catch { notice = "Couldn't switch to \(lens.focalLength) mm." }
@@ -617,6 +656,18 @@ final class CameraModel {
     func setBias(_ v: Float) {
         bias = min(max(v, -3), 3)
         backend.setBias(bias)
+    }
+
+    func setManual(_ m: ManualSettings) {
+        manual = m
+        if m.exposureManual { exposureLocked = false }
+        backend.setManual(m)
+    }
+
+    func toggleManualPanel() {
+        manualOpen.toggle()
+        if manualOpen, manualDial == .aperture, manualRange?.variableAperture != true { manualDial = .shutter }
+        Haptics.tick()
     }
 
     func setAspect(_ a: AspectRatioPreset) {

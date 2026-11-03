@@ -38,7 +38,7 @@ struct CameraView: View {
             GlassEffectContainer(spacing: 10) { topRow.padding(.horizontal, 16) }
                 .opacity(model.controlsFullscreen ? 0 : 1)
             ViewfinderPane(model: model, display: display)
-                .overlay(alignment: .topTrailing) { readoutChip.padding(10).allowsHitTesting(false) }
+                .overlay(alignment: .topTrailing) { readoutButton.padding(10) }
                 .padding(.top, 10)
             LensPill(model: model, readout: LensReadout(rawValue: readout) ?? .focal).padding(.top, 12)
                 .opacity(model.controlsFullscreen ? 0 : 1)
@@ -137,10 +137,20 @@ struct CameraView: View {
         }
     }
 
+    private var readoutButton: some View {
+        Button { model.toggleManualPanel() } label: { readoutChip }
+            .buttonStyle(.plain)
+            .accessibilityLabel(model.manualOpen ? "Hide manual controls" : "Show manual controls")
+            .accessibilityValue("\(topLine), \(bottomLine)")
+    }
+
+    private var manualMark: Bool { status == nil && !model.isAuto }
+
     private var readoutChip: some View {
         VStack(spacing: 1) {
             HStack(spacing: 3) {
                 if status == nil && model.nightActive { Image(systemName: "moon.fill").accessibilityLabel("Night burst") }
+                if manualMark { Text("M").foregroundStyle(Ink.ember).accessibilityLabel("Manual") }
                 Text(topLine)
             }
             .engraved(size: 8.5).foregroundStyle(status == nil && model.nightActive ? Ink.ember : .white.opacity(0.7))
@@ -151,7 +161,10 @@ struct CameraView: View {
         }
         .animation(Motion.snappy, value: status?.1)
         .frame(minWidth: 64, minHeight: 44).padding(.horizontal, Space.s + 2)
-        .glassEffect(.regular, in: .rect(cornerRadius: Radius.chip))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: Radius.chip))
+        .overlay {
+            if model.manualOpen { RoundedRectangle(cornerRadius: Radius.chip).strokeBorder(Ink.dusk, lineWidth: 1.5) }
+        }
     }
 
     private var flashSymbol: String {
@@ -270,6 +283,13 @@ private struct ViewfinderPane: View {
                         .transition(.scale(scale: 1.4).combined(with: .opacity))
                         .allowsHitTesting(false)
                 }
+                if model.manualOpen {
+                    VStack {
+                        Spacer()
+                        ManualPanel(model: model).padding(.horizontal, 8).padding(.bottom, 8)
+                    }
+                    .transition(.rise)
+                }
                 if showHistogram { VStack {
                     Spacer()
                     HStack {
@@ -281,6 +301,7 @@ private struct ViewfinderPane: View {
                     }
                 }
                 .padding(10)
+                .padding(.bottom, model.manualOpen ? ManualPanel.height : 0)
                 .allowsHitTesting(false) }
                 if model.exposureLocked {
                     VStack {
@@ -336,7 +357,7 @@ private struct ViewfinderPane: View {
                         .foregroundStyle(.black)
                         .background(Color(red: 1, green: 0.78, blue: 0.04), in: .rect(cornerRadius: Radius.chip))
                         .shadow(color: .black.opacity(0.25), radius: 8, y: 2)
-                        .padding(.bottom, 56).padding(.horizontal, 24)
+                        .padding(.bottom, bottomClearance).padding(.horizontal, 24)
                     }
                     .transition(.rise)
                 }
@@ -348,7 +369,7 @@ private struct ViewfinderPane: View {
                         }
                         .buttonStyle(.plain)
                         .glassEffect(in: .rect(cornerRadius: Radius.chip))
-                        .padding(.bottom, 56)
+                        .padding(.bottom, bottomClearance)
                     }
                     .transition(.rise)
                     .task(id: notice) {
@@ -358,6 +379,7 @@ private struct ViewfinderPane: View {
                 }
             }
             .animation(Motion.snappy, value: model.notice)
+            .animation(Motion.smooth, value: model.manualOpen)
             .animation(Motion.fade, value: startBias != nil || model.bias != 0)
             .animation(Motion.snappy, value: model.progress.map { if case .countdown = $0 { true } else { false } } ?? false)
             .frame(width: box.width, height: box.height)
@@ -405,8 +427,11 @@ private struct ViewfinderPane: View {
         model.notice = "Copied to clipboard"
     }
 
+    private var bottomClearance: CGFloat { model.manualOpen ? ManualPanel.height + 16 : 56 }
+
     private func tap(_ p: CGPoint, _ box: CGSize) {
         guard Date().timeIntervalSince(lockedAt) > 0.3 else { return }
+        if model.manualOpen, p.y > box.height - ManualPanel.height - 8 { return }
         if model.exposureLocked, p.y < 50, abs(p.x - box.width / 2) < 60 { return }
         focus = p
         focusStamp += 1

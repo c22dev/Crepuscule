@@ -165,8 +165,10 @@ public struct ExposureReading: Equatable, Sendable {
     public var aperture: Float
     public var meterOffset: Float
     public var bias: Float
-    public init(iso: Float = 0, duration: Double = 0, aperture: Float = 0, meterOffset: Float = 0, bias: Float = 0) {
+    public var lensPosition: Float
+    public init(iso: Float = 0, duration: Double = 0, aperture: Float = 0, meterOffset: Float = 0, bias: Float = 0, lensPosition: Float = 0) {
         self.iso = iso; self.duration = duration; self.aperture = aperture; self.meterOffset = meterOffset; self.bias = bias
+        self.lensPosition = lensPosition
     }
 }
 
