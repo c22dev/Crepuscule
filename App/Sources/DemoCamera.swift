@@ -221,6 +221,7 @@ final class DemoCameraBackend: CameraBackend {
     func setMuteShutter(_ on: Bool) {}
     func setNightBursts(_ on: Bool) {}
     func setCodeScanning(_ on: Bool, onCode: ((String) -> Void)?) {}
+    func setProRAWPreferred(_ on: Bool) async -> Bool { false }
     func reading() -> ExposureReading? {
         ExposureReading(iso: 125, duration: 1.0 / 240, aperture: 1.8, meterOffset: 0, bias: queue.sync { bias })
     }

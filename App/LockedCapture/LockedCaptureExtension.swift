@@ -49,6 +49,7 @@ final class LockedCameraModel {
         capture.highlightRetentionStops = context.highlightRetentionStops
         muted = context.muteShutter
         do {
+            try await capture.setPrefersProRAW(!context.stack)
             try await capture.configure()
             capture.setShutterLimit(context.shutterLimit > 0 ? context.shutterLimit : nil)
             capture.start()

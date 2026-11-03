@@ -75,7 +75,26 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
     public var customAspect = (width: 16.0, height: 9.0)
     public let directory: URL
 
+    public private(set) var prefersProRAW = false
+
     public init(directory: URL) { self.directory = directory }
+
+    @discardableResult
+    public func setPrefersProRAW(_ on: Bool) async throws -> Bool {
+        let d: AVCaptureDevice? = await withCheckedContinuation { c in
+            queue.async { [self] in
+                // only reinstall when the mode really flips (never on phones without proraw)
+                let changed = prefersProRAW != on && output.isAppleProRAWSupported && mode != (on ? .proRAW : .bayerRAW)
+                prefersProRAW = on
+                c.resume(returning: changed ? device : nil)
+            }
+        }
+        guard let d else { return false }
+        let before = mode
+        try await install(d)
+        return mode != before
+    }
+
 
     public static func availableLenses() -> [CameraLens] {
         discovery().flatMap { d -> [CameraLens] in
@@ -146,12 +165,10 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
                         }
                     }
                     output.maxPhotoQualityPrioritization = .speed
-                    if output.isAppleProRAWSupported {
-                        output.isAppleProRAWEnabled = true
-                        mode = .proRAW
-                    } else {
-                        mode = .bayerRAW
-                    }
+                    // bayer by default so bursts + super res work on pro phones too, proraw only for single frame
+                    let pro = prefersProRAW && output.isAppleProRAWSupported
+                    if output.isAppleProRAWSupported { output.isAppleProRAWEnabled = pro }
+                    mode = pro ? .proRAW : .bayerRAW
                     device = d
                     exposureLocked = false; neutral = nil; currentBias = 0
                     if (try? d.lockForConfiguration()) != nil {
@@ -162,6 +179,11 @@ public final class CameraCapture: NSObject, @unchecked Sendable {
                         d.unlockForConfiguration()
                     }
                     selectLargestRawDimensions(d)
+                    if mode == .bayerRAW, (try? rawFormat()) == nil, output.isAppleProRAWSupported {
+                        output.isAppleProRAWEnabled = true
+                        mode = .proRAW
+                        selectLargestRawDimensions(d)
+                    }
                     queue.async { [self] in applyShutterLimit() }
                     c.resume()
                 } catch { c.resume(throwing: error) }

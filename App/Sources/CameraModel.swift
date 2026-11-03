@@ -29,6 +29,7 @@ protocol CameraBackend: AnyObject {
     func setMuteShutter(_ on: Bool)
     func setNightBursts(_ on: Bool)
     func setCodeScanning(_ on: Bool, onCode: ((String) -> Void)?)
+    @discardableResult func setProRAWPreferred(_ on: Bool) async -> Bool
     func reading() -> ExposureReading?
     func captureAngle() -> CGFloat?
     func shoot(mode: DriveMode, timer: SelfTimer, stack: Bool, retention: Double, metering: CameraCapture.BracketMetering, progress: @escaping @Sendable (DriveProgress) -> Void) async throws -> [CaptureResult]
@@ -90,6 +91,7 @@ final class DeviceCameraBackend: CameraBackend {
     func setMuteShutter(_ on: Bool) { capture.muteShutter = on }
     func setNightBursts(_ on: Bool) { capture.nightBursts = on }
     func setCodeScanning(_ on: Bool, onCode: ((String) -> Void)?) { capture.onCode = onCode; capture.setCodeScanning(on) }
+    @discardableResult func setProRAWPreferred(_ on: Bool) async -> Bool { (try? await capture.setPrefersProRAW(on)) ?? false }
     func reading() -> ExposureReading? { capture.reading() }
     func captureAngle() -> CGFloat? { rotation?.videoRotationAngleForHorizonLevelCapture }
     func shoot(mode: DriveMode, timer: SelfTimer, stack: Bool, retention: Double, metering: CameraCapture.BracketMetering, progress: @escaping @Sendable (DriveProgress) -> Void) async throws -> [CaptureResult] {
@@ -347,6 +349,7 @@ final class CameraModel {
             pump.drawsPlain = backend.captureSession == nil
             backend.onStats = { [weak self] s in Task { @MainActor in self?.stats = s } }
             syncPump()
+            await backend.setProRAWPreferred(!library.burstMerge)
             let wanted = UserDefaults.standard.integer(forKey: "defaultLens")
             let result = try await backend.prepare { wanted != 0 && $0.facing == .back && abs($0.focalLength - wanted) <= 2 }
             Startup.log.notice("configured \(began.duration(to: .now), privacy: .public)")
@@ -374,7 +377,17 @@ final class CameraModel {
     }
 
     func resume() { syncPump(); backend.resume(); startTicker(); live = true }
-    func refreshSettings() { syncPump(); publishLockedContext() }
+    func refreshSettings() {
+        syncPump(); publishLockedContext()
+        guard phase == .running, !switching, !firing else { return }
+        switching = true
+        Task {
+            // reinstalling resets exposure in the capture layer, keep the ui in step like a lens switch does
+            if await backend.setProRAWPreferred(!library.burstMerge) { bias = 0; exposureLocked = false }
+            formatLabel = backend.formatLabel
+            switching = false
+        }
+    }
     func pause() {
         live = false
         cancelShot()
