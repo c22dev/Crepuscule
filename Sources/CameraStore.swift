@@ -10,7 +10,7 @@ protocol CameraStore: AnyObject {
     var aspectRatioPreset: AspectRatioPreset { get set }
     var perImageDefaults: Grade { get set }
     var allLooks: [(name: String, grade: Grade)] { get }
-    func file(_ result: CaptureResult, bias: Float, aspect: AspectRatioPreset, tag: String?, cropFactor: Double, night: Bool) throws -> (() async throws -> Void)?
+    func file(_ result: CaptureResult, bias: Float, aspect: AspectRatioPreset, tag: String?, cropFactor: Double, night: Bool, mirror: Bool) throws -> (() async throws -> Void)?
 }
 
 enum ExposureText {

@@ -258,6 +258,9 @@ final class CameraModel {
     var nightBursts = UserDefaults.standard.object(forKey: "nightBursts") as? Bool ?? true {
         didSet { UserDefaults.standard.set(nightBursts, forKey: "nightBursts"); syncNight(); publishLockedContext() }
     }
+    var mirrorFront = UserDefaults.standard.bool(forKey: "mirrorFrontCamera") {
+        didSet { UserDefaults.standard.set(mirrorFront, forKey: "mirrorFrontCamera"); publishLockedContext() }
+    }
     var nightAvailable: Bool {
         nightBursts && !manual.exposureManual && store.burstMerge && formatLabel != "PRORAW" && NightBurst.applies(iso: reading.iso, duration: reading.duration)
     }
@@ -553,6 +556,7 @@ final class CameraModel {
         var context = LockedCaptureContext()
         context.stack = store.burstMerge; context.muteShutter = muteShutter; context.shutterLimit = shutterLimit
         context.nightBursts = nightBursts; context.highlightRetentionStops = store.highlightRetentionStops
+        context.mirrorFront = mirrorFront
         context.bracketMetering = store.bracketMetering.rawValue; context.aspect = store.aspectRatioPreset.rawValue
         context.look = try? json.encode(store.perImageDefaults)
         context.looks = store.allLooks.compactMap { l in (try? json.encode(l.grade)).map { .init(name: l.name, grade: $0) } }
@@ -786,7 +790,7 @@ final class CameraModel {
         firing = true
         Haptics.shutter()
         let stack = store.burstMerge, retention = store.highlightRetentionStops, metering = store.bracketMetering, shotBias = bias
-        let night = nightActive
+        let night = nightActive, mirror = isFront && mirrorFront
         let drive = driveOverride ?? drive, timer = timerOverride ?? timer, aspect = aspect, crop = active?.cropFactor ?? 1
         shot = Task { [weak self] in
             guard let self else { return }
@@ -810,7 +814,7 @@ final class CameraModel {
                     case .burst3, .burst5: tag = "\(i + 1)/\(drive.shots)"
                     case .bracket3, .bracket5: tag = String(format: "%+.0f EV", drive.evOffsets[i])
                     }
-                    if let job = try store.file(r, bias: shotBias, aspect: aspect, tag: tag, cropFactor: crop, night: night) { runAfterCapture(job) }
+                    if let job = try store.file(r, bias: shotBias, aspect: aspect, tag: tag, cropFactor: crop, night: night, mirror: mirror) { runAfterCapture(job) }
                 }
             } catch is CancellationError {
                 Haptics.warn()

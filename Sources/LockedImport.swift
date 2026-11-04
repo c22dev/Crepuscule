@@ -40,7 +40,7 @@ extension Library {
                               frames: shot.frames.map { (folder.appendingPathComponent($0.name), $0.scale) },
                               blur: shot.blur, bias: shot.bias ?? 0,
                               aspect: shot.aspect.flatMap(AspectRatioPreset.init(rawValue:)) ?? settings.aspectRatioPreset,
-                              tag: shot.tag, cropFactor: shot.cropFactor ?? 1, night: shot.night == true,
+                              tag: shot.tag, cropFactor: shot.cropFactor ?? 1, night: shot.night == true, mirror: shot.mirror == true,
                               look: shot.look.flatMap { try? JSONDecoder().decode(Grade.self, from: $0) })
         guard settings.autoExport else { return nil }
         return { [self] in _ = try await saveToPhotos(item) }

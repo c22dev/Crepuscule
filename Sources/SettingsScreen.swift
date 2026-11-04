@@ -81,6 +81,7 @@ struct SettingsScreen: View {
         camera.muteShutter = false
         camera.nightBursts = true
         library.autoNightClean = true
+        camera.mirrorFront = false
         camera.scanCodes = true
         camera.showGrid = false
         camera.showLook = false
@@ -142,6 +143,11 @@ private struct CameraSettings: View {
                 Toggle("Mute Shutter Sound", isOn: $camera.muteShutter)
             } header: { Text("Shutter") } footer: {
                 Text("Shutter Limit is the slowest speed auto exposure will choose.")
+            }
+            Section {
+                Toggle("Mirror Front Camera", isOn: $camera.mirrorFront)
+            } header: { Text("Front Camera") } footer: {
+                Text("Saves selfies flipped, the way they look in the viewfinder. You can change it per photo in the editor.")
             }
         }
         .navigationTitle("Camera")

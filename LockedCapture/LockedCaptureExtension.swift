@@ -40,7 +40,7 @@ final class LockedStore: CameraStore {
         allLooks = looks.isEmpty ? [("Factory", Presets.factoryDefault), ("Mono", Presets.blackAndWhite)] : looks
     }
 
-    func file(_ r: CaptureResult, bias: Float, aspect: AspectRatioPreset, tag: String?, cropFactor: Double, night: Bool) throws -> (() async throws -> Void)? {
+    func file(_ r: CaptureResult, bias: Float, aspect: AspectRatioPreset, tag: String?, cropFactor: Double, night: Bool, mirror: Bool) throws -> (() async throws -> Void)? {
         var shot = LockedShot(base: r.baseURL.lastPathComponent,
                               frames: r.frames.map { .init(name: $0.url.lastPathComponent, scale: Float($0.spec?.exposureScale ?? 1)) },
                               blur: r.blurPixels, created: Date(), night: night)
@@ -48,6 +48,7 @@ final class LockedStore: CameraStore {
         shot.cropFactor = cropFactor
         shot.bias = bias
         shot.tag = tag
+        shot.mirror = mirror ? true : nil
         if lookChosen { shot.look = try? JSONEncoder().encode(perImageDefaults) }
         let url = folder.appendingPathComponent(UUID().uuidString + LockedShot.suffix)
         try JSONEncoder().encode(shot).write(to: url, options: .atomic)
@@ -63,6 +64,7 @@ final class LockedStore: CameraStore {
         d.set(c.shutterLimit, forKey: "shutterLimitDenominator")
         d.set(c.muteShutter, forKey: "muteShutterSound")
         d.set(c.nightBursts, forKey: "nightBursts")
+        d.set(c.mirrorFront, forKey: "mirrorFrontCamera")
         d.set(false, forKey: "scanCodesInViewfinder")
         d.set(c.defaultLens, forKey: "defaultLens")
         d.set(true, forKey: "lockHintShown")

@@ -11,6 +11,7 @@ struct LockedCaptureContext: Codable, Sendable {
     var muteShutter = false
     var shutterLimit = 0
     var nightBursts = true
+    var mirrorFront = false
     var highlightRetentionStops = 2.0
     var bracketMetering: String?
     var aspect: Int?
@@ -31,6 +32,7 @@ struct LockedCaptureContext: Codable, Sendable {
         muteShutter = try c.decodeIfPresent(Bool.self, forKey: .muteShutter) ?? false
         shutterLimit = try c.decodeIfPresent(Int.self, forKey: .shutterLimit) ?? 0
         nightBursts = try c.decodeIfPresent(Bool.self, forKey: .nightBursts) ?? true
+        mirrorFront = try c.decodeIfPresent(Bool.self, forKey: .mirrorFront) ?? false
         highlightRetentionStops = try c.decodeIfPresent(Double.self, forKey: .highlightRetentionStops) ?? 2
         bracketMetering = try c.decodeIfPresent(String.self, forKey: .bracketMetering)
         aspect = try c.decodeIfPresent(Int.self, forKey: .aspect)

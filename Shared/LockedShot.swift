@@ -17,6 +17,7 @@ struct LockedShot: Codable {
     var bias: Float?
     var tag: String?
     var look: Data?
+    var mirror: Bool?
 
     static let suffix = ".shot.json"
 }
